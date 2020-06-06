@@ -1,0 +1,11 @@
+**/Notes
+
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+.vscode/
+settings.json
+
+Assignments/
+
+SLP - Notes.pdf
