@@ -38,10 +38,9 @@ class EOS_DeltaPlus_SPH(Equation):
         self.rho0 = rho0
         self.c0 = c0
         self.c0_2 = c0*c0
-        super(EOS_DeltaPlus_SPH, self).___init___(dest, sources)
+        super(EOS_DeltaPlus_SPH, self).__init__(dest, sources)
 
     def loop(self, d_idx, d_rho, d_p):
-        
         rhoi = d_rho[d_idx]
 
         # Equation of state
@@ -93,12 +92,12 @@ class ContinuityEquation_DeltaPlus_SPH(Equation):
         # Calculate constant
         self.CONST = delta * H * c0
 
-        super(ContinuityEquation_DeltaPlus_SPH, self).___init___(dest, sources)
+        super(ContinuityEquation_DeltaPlus_SPH, self).__init__(dest, sources)
 
     def initialize(self, d_idx, d_arho):
         d_arho[d_idx] = 0.0
 
-    def loop(self, d_idx, s_idx, d_arho, d_rho, VIJ, DWIJ, s_m, s_rho, XIJ, R2IJ):
+    def loop(self, d_idx, s_idx, d_arho, d_rho, VIJ, DWIJ, s_m, s_rho, XIJ, R2IJ, EPS):
         
         rhoi = d_rho[d_idx]
         rhoj = s_rho[s_idx]
@@ -117,9 +116,9 @@ class ContinuityEquation_DeltaPlus_SPH(Equation):
         tmp1 = rhoi * vijdotDWij
 
         # Dissipative diffusive term
-        tmp2 = self.CONST * psi_ij * xjidotDWij / R2IJ # NOTE: R2JI = R2IJ
+        tmp2 = self.CONST * psi_ij * xjidotDWij / (R2IJ + EPS) # NOTE: R2JI = R2IJ
 
-        d_arho +=  (tmp1 + tmp2) * Vj
+        d_arho[d_idx] +=  (tmp1 + tmp2) * Vj
 
 class MomentumEquation_DeltaPlus_SPH(Equation):
     r""" *Momentum equation defined by the Delta_plus SPH scheme*
@@ -188,7 +187,7 @@ class MomentumEquation_DeltaPlus_SPH(Equation):
         d_av[d_idx] = 0.0
         d_aw[d_idx] = 0.0
 
-    def loop(self, d_idx, s_idx, d_rho, s_rho, DWIJ, s_m, VIJ, XIJ, R2IJ, d_au, d_av, d_aw, d_p, s_p):
+    def loop(self, d_idx, s_idx, d_rho, s_rho, DWIJ, s_m, VIJ, XIJ, R2IJ, d_au, d_av, d_aw, d_p, s_p, EPS):
         
         rhoj = s_rho[s_idx]
         Vj = s_m[s_idx] / rhoj
@@ -205,7 +204,7 @@ class MomentumEquation_DeltaPlus_SPH(Equation):
             Fij = (Pi + Pj) * -1.0
 
         # pi_ij
-        pi_ij  = vjidotxji / R2IJ
+        pi_ij  = vjidotxji / (R2IJ + EPS)
 
         tmp = (Fij + self.CONST * pi_ij) * Vj 
 
@@ -215,8 +214,8 @@ class MomentumEquation_DeltaPlus_SPH(Equation):
         d_aw[d_idx] += tmp*DWIJ[2]
 
     def post_loop(self, d_idx, d_au, d_av, d_aw, d_rho):
-        
-        rhoi = d_rho[d_idx]
+                
+        rhoi = d_rho[d_idx] #Mome
         
         d_au[d_idx] = d_au[d_idx] / rhoi + self.fx
         d_av[d_idx] = d_av[d_idx] / rhoi + self.fy
@@ -379,7 +378,7 @@ class ContinuityEquation_RDGC_DeltaPlus_SPH(Equation):
         # Calculate constant
         self.CONST = delta * H * c0
 
-        super(ContinuityEquation_RDGC_DeltaPlus_SPH, self).___init___(dest, sources)
+        super(ContinuityEquation_RDGC_DeltaPlus_SPH, self).__init__(dest, sources)
 
     def initialize(self, d_idx, d_arho):
         d_arho[d_idx] = 0.0
@@ -462,7 +461,7 @@ class ParticleShiftingTechnique(Equation):
 
         self.CONST = -1.0*dt*c0*4*H*H
 
-        super(ParticleShiftingTechnique, self).___init___(dest, sources)
+        super(ParticleShiftingTechnique, self).__init__(dest, sources)
 
     def initialize(self, d_idx, d_del_x, d_del_y):
         d_del_x[d_idx] = 0.0

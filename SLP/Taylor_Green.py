@@ -12,10 +12,10 @@ from pysph.sph.integrator import Integrator, IntegratorStep
 
 # Additional import
 import numpy as np
-import np.pi as pi
+pi = np.pi
 
 # Import Delta_Plus - SPH Equations
-from SLP.Delta_Plus_SPH import EOS_DeltaPlus_SPH, MomentumEquation_DeltaPlus_SPH, ContinuityEquation_DeltaPlus_SPH
+from Delta_Plus_SPH import EOS_DeltaPlus_SPH, MomentumEquation_DeltaPlus_SPH, ContinuityEquation_DeltaPlus_SPH
 
 
 class EulerIntegrator(Integrator):
@@ -23,6 +23,7 @@ class EulerIntegrator(Integrator):
         self.initialize()
         self.compute_accelerations()
         self.stage1()
+        #self.stage2()
         self.do_post_stage(dt,1)
 
 class EulerStep(IntegratorStep):
@@ -37,20 +38,23 @@ class EulerStep(IntegratorStep):
         d_y[d_idx] += dt*d_v[d_idx]
 
         d_rho[d_idx] += dt*d_arho[d_idx]
-        
-    def do_post_stage(self):
-        #########
-        # Enforce periodic boundary condition
-        pass
+
+    '''def stage2(self, d_idx, d_x, d_y):
+ 
+        if d_x[d_idx] > pi:
+            d_x[d_idx] = pi - d_x[d_idx]
+
+        if d_y[d_idx] > pi:
+            d_y[d_idx] = pi - d_y[d_idx]'''
 
 class Taylor_Green(Application):
-    def __init__(self):
+    def initialize(self):
         self.dx = 0.05 
         self.rho0 = 1000
-        self.vol = dx*dx
-        self.m0 = rho0*vol
+        self.vol = self.dx * self.dx
+        self.m0 = self.rho0 * self.vol
         self.hdx = 1.3
-        self.h0 = hdx*dx
+        self.h0 = self.hdx * self.dx
         self.c0 = 15
 
     def create_particles(self):
@@ -59,7 +63,7 @@ class Taylor_Green(Application):
         '''
         dx = self.dx
         # Fluid
-        x0, y0 = np.mrid[dx/2: pi-dx/2:dx, dx/2: pi-dx/2:dx]
+        x0, y0 = np.mgrid[dx/2: pi-dx/2:dx, dx/2: pi-dx/2:dx]
         u0 = np.sin(x0)*np.cos(y0)
         v0 = -1.0 * np.cos(x0)*np.sin(y0)
 
@@ -69,35 +73,42 @@ class Taylor_Green(Application):
 
         return [pa_fluid]
 
-        def create_solver(self):
-            kernel = CubicSpline(dim=2)
-            
-            integrator = EulerIntegrator(fluid = EulerStep())
+    def create_solver(self):
 
-            dt = 1e-6
-            tf = 0.1
-
-            solver = Solver(
-                kernel=kernel, dim=2, integrator=integrator, dt=dt, tf=tf
-            )
-            return solver
-
-        def create_equations(self):
-
-            equations = [
-                Group(
-                    equations=[EOS_DeltaPlus_SPH(dest='fluid', sources=['fluid'], 
-                    rho0=self.rho0, c0=self.c0)], real=False       
-                ),
-
+        kernel = CubicSpline(dim=2)
         
-                Group(
-                    equations=[
-                        ContinuityEquation_DeltaPlus_SPH(dest='fluid', sources=['fluid'], delta=0.1, c0=self.c0,H=self.h0), 
-                        MomentumEquation_DeltaPlus_SPH(dest='fluid', sources=['fluid'], dim=2, mu=1)
-                        ],
-                        real=True
-                )
-            ]
+        integrator = EulerIntegrator(fluid = EulerStep())
 
-            return equations
+        dt = 1e-5
+        tf = dt*500
+
+        solver = Solver(
+            kernel=kernel, dim=2, integrator=integrator, dt=dt, tf=tf
+        )
+        return solver
+
+    def create_equations(self):
+        equations = [
+            Group(
+                equations=[EOS_DeltaPlus_SPH(dest='fluid', sources=['fluid'], 
+                rho0=self.rho0, c0=self.c0)], real=False       
+            ),
+
+    
+            Group(
+                equations=[
+                    ContinuityEquation_DeltaPlus_SPH(dest='fluid', sources=['fluid'], delta=0.1, c0=self.c0,H=self.h0), 
+                    MomentumEquation_DeltaPlus_SPH(dest='fluid', sources=['fluid'], dim=2, mu=1)
+                    ],
+                    real=True
+            )
+        ]
+
+        return equations
+
+    def pre_step(self, solver):
+        solver.dump_output()
+
+if __name__ == '__main__':
+    app = Taylor_Green()
+    app.run()
