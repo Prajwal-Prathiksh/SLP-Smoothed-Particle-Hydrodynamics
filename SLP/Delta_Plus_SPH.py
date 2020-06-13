@@ -224,27 +224,26 @@ class MomentumEquation_DeltaPlus_SPH(Equation):
 
 class RenormalizationTensor2D_DeltaPlus_SPH(Equation):
     r""" *Renormaliztion Tensor as defined by the Delta_plus SPH scheme for the 
-    2D case*
+        2D case*
 
-    ..math::
-        \mathbb{L}_{i}=\bigg[\sum_j\mathbf{r_{ji}}\otimes\nabla_i W_{ij}V_j\bigg]^{-1}
+        ..math::
+            \mathbb{L}_{i}=\bigg[\sum_j\mathbf{r_{ji}}\otimes\nabla_i W_{ij}V_j\bigg]^{-1}
 
-    ..math::
-        \lambda_i=\text{min}\big(\text{eigenvalue}(\mathbb{L}_i^{-1})\big)
+        ..math::
+            \lambda_i=\text{min}\big(\text{eigenvalue}(\mathbb{L}_i^{-1})\big)
 
-    References:
-    -----------
-    .. [Sun2017] Sun, P. N., et al. “The δ p l u s -SPH Model: Simple
-    Procedures for a Further Improvement of the SPH Scheme.” Computer 
-    Methods in Applied Mechanics and Engineering, vol. 315, Mar. 2017, pp. 
-    25–49. DOI.org (Crossref), doi:10.1016/j.cma.2016.10.028.
+        References:
+        -----------
+        .. [Sun2017] Sun, P. N., et al. “The δ p l u s -SPH Model: Simple
+        Procedures for a Further Improvement of the SPH Scheme.” Computer 
+        Methods in Applied Mechanics and Engineering, vol. 315, Mar. 2017, pp. 
+        25–49. DOI.org (Crossref), doi:10.1016/j.cma.2016.10.028.
 
-    .. [Marrone2010] Marrone, S., et al. “Fast Free-Surface Detection and Level-
-    Set Function Definition in SPH Solvers.” Journal of Computational Physics, 
-    vol. 229, no. 10, May 2010, pp. 3652–63. DOI.org (Crossref), 
-    doi:10.1016/j.jcp.2010.01.019.
+        .. [Marrone2010] Marrone, S., et al. “Fast Free-Surface Detection and Level-
+        Set Function Definition in SPH Solvers.” Journal of Computational Physics, 
+        vol. 229, no. 10, May 2010, pp. 3652–63. DOI.org (Crossref), 
+        doi:10.1016/j.jcp.2010.01.019.
     """
-   
     def _cython_code_(self):
         r"""
         Import eigen_decomposition function
@@ -348,7 +347,6 @@ class ContinuityEquation_RDGC_DeltaPlus_SPH(Equation):
             \langle\nabla\rho\rangle_i^L=\sum_j(\rho_j-\rho_j)\mathbb{L}_{i}.
             \nabla_i W_{ij}V_j
 
-
         References:
         -----------
         .. [Marrone2011] Marrone, S., et al. “δ-SPH Model for Simulating Violent
@@ -386,10 +384,10 @@ class ContinuityEquation_RDGC_DeltaPlus_SPH(Equation):
     def initialize(self, d_idx, d_arho):
         d_arho[d_idx] = 0.0
 
-    #######################################
-    #### Code is currently being written!!
-    #######################################
-    pass
+        #######################################
+        #### Code is currently being written!!
+        #######################################
+        pass
 
 class ParticleShiftingTechnique(Equation):
     r"""*Particle-Shifting Technique employed in
