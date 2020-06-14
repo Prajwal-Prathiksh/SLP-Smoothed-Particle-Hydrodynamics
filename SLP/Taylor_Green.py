@@ -16,7 +16,7 @@ pi = np.pi
 
 # Import Delta_Plus - SPH Equations
 from Delta_Plus_SPH import EOS_DeltaPlus_SPH, MomentumEquation_DeltaPlus_SPH, ContinuityEquation_DeltaPlus_SPH
-
+##NOTE: git checkout b139a3ba 
 
 class EulerIntegrator(Integrator):
     def one_timestep(self, t, dt):
@@ -49,7 +49,7 @@ class EulerStep(IntegratorStep):
 
 class Taylor_Green(Application):
     def initialize(self):
-        self.dx = 0.05 
+        self.dx = 1.0/50.0
         self.rho0 = 1000
         self.vol = self.dx * self.dx
         self.m0 = self.rho0 * self.vol
@@ -63,9 +63,9 @@ class Taylor_Green(Application):
         '''
         dx = self.dx
         # Fluid
-        x0, y0 = np.mgrid[dx/2: pi-dx/2:dx, dx/2: pi-dx/2:dx]
-        u0 = np.sin(x0)*np.cos(y0)
-        v0 = -1.0 * np.cos(x0)*np.sin(y0)
+        x0, y0 = np.mgrid[dx/2: 1-dx/2:dx, dx/2: 1-dx/2:dx]
+        v0 = np.sin(2*pi*x0)*np.cos(2*pi*y0)
+        u0 = -1.0 * np.cos(2*pi*x0)*np.sin(2*pi*y0)
 
 
         pa_fluid = get_particle_array_wcsph(
@@ -80,18 +80,19 @@ class Taylor_Green(Application):
         integrator = EulerIntegrator(fluid = EulerStep())
 
         dt = 1e-5
-        tf = dt*500
+        tf = 1
 
         solver = Solver(
-            kernel=kernel, dim=2, integrator=integrator, dt=dt, tf=tf
+            kernel=kernel, dim=2, integrator=integrator, dt=dt, tf=tf, pfreq=50,
         )
         return solver
 
     def create_equations(self):
         equations = [
             Group(
-                equations=[EOS_DeltaPlus_SPH(dest='fluid', sources=['fluid'], 
-                rho0=self.rho0, c0=self.c0)], real=False       
+                equations=[
+                    EOS_DeltaPlus_SPH(dest='fluid', sources=['fluid'],rho0=self.rho0, c0=self.c0)
+                ], real=False       
             ),
 
     
@@ -99,15 +100,12 @@ class Taylor_Green(Application):
                 equations=[
                     ContinuityEquation_DeltaPlus_SPH(dest='fluid', sources=['fluid'], delta=0.1, c0=self.c0,H=self.h0), 
                     MomentumEquation_DeltaPlus_SPH(dest='fluid', sources=['fluid'], dim=2, mu=1)
-                    ],
+                ],
                     real=True
             )
         ]
 
         return equations
-
-    def pre_step(self, solver):
-        solver.dump_output()
 
 if __name__ == '__main__':
     app = Taylor_Green()
