@@ -1,0 +1,278 @@
+INFO|2020-06-14 08:08:05,294|pysph.solver.application|Started as:
+/home/prajwal/pysph/pysph/examples/taylor_green.py
+INFO|2020-06-14 08:08:05,295|pysph.solver.application|Running on Hope with address 127.0.1.1
+INFO|2020-06-14 08:08:05,295|pysph.solver.application|Using OpenMP schedule dynamic,64
+INFO|2020-06-14 08:08:05,316|pysph.solver.application|Generating output in /home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/taylor_green_output
+INFO|2020-06-14 08:08:05,461|compyle.ext_module|Precompiled code from: /home/prajwal/.pysph/source/py3.6-linux-x86_64/m_2e593b53a04eb2aabc060a9ebb4015f3.pyx
+INFO|2020-06-14 08:08:05,551|pysph.solver.application|Started multiprocessing interface on 0.0.0.0:8800
+INFO|2020-06-14 08:08:05,551|pysph.solver.application|----------------------------------------------------------------------
+No of particles:
+  fluid: 3844
+----------------------------------------------------------------------
+INFO|2020-06-14 08:08:05,551|pysph.solver.application|Using kernel:
+----------------------------------------------------------------------
+  QuinticSpline(dim=2)
+----------------------------------------------------------------------
+INFO|2020-06-14 08:08:05,551|pysph.solver.application|Using nnps:
+----------------------------------------------------------------------
+  LinkedListNNPS(dim=2)
+----------------------------------------------------------------------
+INFO|2020-06-14 08:08:05,551|pysph.solver.application|Using integrator:
+----------------------------------------------------------------------
+  PECIntegrator(fluid=TransportVelocityStep())
+----------------------------------------------------------------------
+INFO|2020-06-14 08:08:05,553|pysph.solver.application|Using equations:
+----------------------------------------------------------------------
+[
+Group(equations=[
+    SummationDensity(dest='fluid', sources=['fluid'])
+  ],
+  real=False, update_nnps=False, iterate=False, max_iterations=1,
+  min_iterations=0, pre=None, post=None),
+Group(equations=[
+    StateEquation(dest='fluid', sources=None, p0=100.0, rho0=1.0, b=1.0)
+  ],
+  real=False, update_nnps=False, iterate=False, max_iterations=1,
+  min_iterations=0, pre=None, post=None),
+Group(equations=[
+    MomentumEquationPressureGradient(dest='fluid', sources=['fluid'],
+    pb=100.0, gx=0.0, gy=0.0, gz=0.0, tdamp=0.0), 
+    MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=0.01), 
+    MomentumEquationArtificialStress(dest='fluid', sources=['fluid'])
+  ],
+  real=True, update_nnps=False, iterate=False, max_iterations=1,
+  min_iterations=0, pre=None, post=None)
+]
+----------------------------------------------------------------------
+INFO|2020-06-14 08:08:05,553|pysph.solver.application|Callbacks:
+----------------------------------------------------------------------
+
+INFO|2020-06-14 08:08:05,553|pysph.solver.application|Pre-step callbacks:
+[]
+
+INFO|2020-06-14 08:08:05,553|pysph.solver.application|Post-step callbacks:
+[]
+
+INFO|2020-06-14 08:08:05,553|pysph.solver.application|Post-stage callbacks:
+[]
+----------------------------------------------------------------------
+
+INFO|2020-06-14 08:08:05,553|pysph.solver.application|Setup took: 0.35645 secs
+INFO|2020-06-14 08:08:05,554|pysph.solver.solver|Writing output at time 0, iteration 0, dt = 0.000454545
+INFO|2020-06-14 08:08:07,093|pysph.solver.solver|Writing output at time 0.0454545, iteration 100, dt = 0.000454545
+INFO|2020-06-14 08:08:08,746|pysph.solver.solver|Writing output at time 0.0909091, iteration 200, dt = 0.000454545
+INFO|2020-06-14 08:08:10,432|pysph.solver.solver|Writing output at time 0.136364, iteration 300, dt = 0.000454545
+INFO|2020-06-14 08:08:12,177|pysph.solver.solver|Writing output at time 0.181818, iteration 400, dt = 0.000454545
+INFO|2020-06-14 08:08:13,848|pysph.solver.solver|Writing output at time 0.227273, iteration 500, dt = 0.000454545
+INFO|2020-06-14 08:08:15,527|pysph.solver.solver|Writing output at time 0.272727, iteration 600, dt = 0.000454545
+INFO|2020-06-14 08:08:17,242|pysph.solver.solver|Writing output at time 0.318182, iteration 700, dt = 0.000454545
+INFO|2020-06-14 08:08:19,032|pysph.solver.solver|Writing output at time 0.363636, iteration 800, dt = 0.000454545
+INFO|2020-06-14 08:08:20,979|pysph.solver.solver|Writing output at time 0.409091, iteration 900, dt = 0.000454545
+INFO|2020-06-14 08:09:58,909|pysph.solver.application|Started as:
+/home/prajwal/pysph/pysph/examples/taylor_green.py
+INFO|2020-06-14 08:09:58,909|pysph.solver.application|Running on Hope with address 127.0.1.1
+INFO|2020-06-14 08:09:58,909|pysph.solver.application|Using OpenMP schedule dynamic,64
+INFO|2020-06-14 08:09:58,917|pysph.solver.application|Generating output in /home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/taylor_green_output
+INFO|2020-06-14 08:09:59,009|compyle.ext_module|Precompiled code from: /home/prajwal/.pysph/source/py3.6-linux-x86_64/m_2e593b53a04eb2aabc060a9ebb4015f3.pyx
+INFO|2020-06-14 08:09:59,047|pysph.solver.application|Started multiprocessing interface on 0.0.0.0:8800
+INFO|2020-06-14 08:09:59,048|pysph.solver.application|----------------------------------------------------------------------
+No of particles:
+  fluid: 3844
+----------------------------------------------------------------------
+INFO|2020-06-14 08:09:59,048|pysph.solver.application|Using kernel:
+----------------------------------------------------------------------
+  QuinticSpline(dim=2)
+----------------------------------------------------------------------
+INFO|2020-06-14 08:09:59,048|pysph.solver.application|Using nnps:
+----------------------------------------------------------------------
+  LinkedListNNPS(dim=2)
+----------------------------------------------------------------------
+INFO|2020-06-14 08:09:59,048|pysph.solver.application|Using integrator:
+----------------------------------------------------------------------
+  PECIntegrator(fluid=TransportVelocityStep())
+----------------------------------------------------------------------
+INFO|2020-06-14 08:09:59,049|pysph.solver.application|Using equations:
+----------------------------------------------------------------------
+[
+Group(equations=[
+    SummationDensity(dest='fluid', sources=['fluid'])
+  ],
+  real=False, update_nnps=False, iterate=False, max_iterations=1,
+  min_iterations=0, pre=None, post=None),
+Group(equations=[
+    StateEquation(dest='fluid', sources=None, p0=100.0, rho0=1.0, b=1.0)
+  ],
+  real=False, update_nnps=False, iterate=False, max_iterations=1,
+  min_iterations=0, pre=None, post=None),
+Group(equations=[
+    MomentumEquationPressureGradient(dest='fluid', sources=['fluid'],
+    pb=100.0, gx=0.0, gy=0.0, gz=0.0, tdamp=0.0), 
+    MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=0.01), 
+    MomentumEquationArtificialStress(dest='fluid', sources=['fluid'])
+  ],
+  real=True, update_nnps=False, iterate=False, max_iterations=1,
+  min_iterations=0, pre=None, post=None)
+]
+----------------------------------------------------------------------
+INFO|2020-06-14 08:09:59,049|pysph.solver.application|Callbacks:
+----------------------------------------------------------------------
+
+INFO|2020-06-14 08:09:59,050|pysph.solver.application|Pre-step callbacks:
+[]
+
+INFO|2020-06-14 08:09:59,050|pysph.solver.application|Post-step callbacks:
+[]
+
+INFO|2020-06-14 08:09:59,050|pysph.solver.application|Post-stage callbacks:
+[]
+----------------------------------------------------------------------
+
+INFO|2020-06-14 08:09:59,050|pysph.solver.application|Setup took: 0.14301 secs
+INFO|2020-06-14 08:09:59,051|pysph.solver.solver|Writing output at time 0, iteration 0, dt = 0.000454545
+INFO|2020-06-14 08:10:00,717|pysph.solver.solver|Writing output at time 0.0454545, iteration 100, dt = 0.000454545
+INFO|2020-06-14 08:10:02,357|pysph.solver.solver|Writing output at time 0.0909091, iteration 200, dt = 0.000454545
+INFO|2020-06-14 08:10:57,049|pysph.solver.application|Started as:
+/home/prajwal/pysph/pysph/examples/taylor_green.py
+INFO|2020-06-14 08:10:57,049|pysph.solver.application|Running on Hope with address 127.0.1.1
+INFO|2020-06-14 08:10:57,049|pysph.solver.application|Using OpenMP schedule dynamic,64
+INFO|2020-06-14 08:10:57,053|pysph.solver.application|Generating output in /home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/taylor_green_output
+INFO|2020-06-14 08:10:57,132|compyle.ext_module|Precompiled code from: /home/prajwal/.pysph/source/py3.6-linux-x86_64/m_2e593b53a04eb2aabc060a9ebb4015f3.pyx
+INFO|2020-06-14 08:10:57,156|pysph.solver.application|Started multiprocessing interface on 0.0.0.0:8800
+INFO|2020-06-14 08:10:57,157|pysph.solver.application|----------------------------------------------------------------------
+No of particles:
+  fluid: 3844
+----------------------------------------------------------------------
+INFO|2020-06-14 08:10:57,157|pysph.solver.application|Using kernel:
+----------------------------------------------------------------------
+  QuinticSpline(dim=2)
+----------------------------------------------------------------------
+INFO|2020-06-14 08:10:57,157|pysph.solver.application|Using nnps:
+----------------------------------------------------------------------
+  LinkedListNNPS(dim=2)
+----------------------------------------------------------------------
+INFO|2020-06-14 08:10:57,158|pysph.solver.application|Using integrator:
+----------------------------------------------------------------------
+  PECIntegrator(fluid=TransportVelocityStep())
+----------------------------------------------------------------------
+INFO|2020-06-14 08:10:57,159|pysph.solver.application|Using equations:
+----------------------------------------------------------------------
+[
+Group(equations=[
+    SummationDensity(dest='fluid', sources=['fluid'])
+  ],
+  real=False, update_nnps=False, iterate=False, max_iterations=1,
+  min_iterations=0, pre=None, post=None),
+Group(equations=[
+    StateEquation(dest='fluid', sources=None, p0=100.0, rho0=1.0, b=1.0)
+  ],
+  real=False, update_nnps=False, iterate=False, max_iterations=1,
+  min_iterations=0, pre=None, post=None),
+Group(equations=[
+    MomentumEquationPressureGradient(dest='fluid', sources=['fluid'],
+    pb=100.0, gx=0.0, gy=0.0, gz=0.0, tdamp=0.0), 
+    MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=0.01), 
+    MomentumEquationArtificialStress(dest='fluid', sources=['fluid'])
+  ],
+  real=True, update_nnps=False, iterate=False, max_iterations=1,
+  min_iterations=0, pre=None, post=None)
+]
+----------------------------------------------------------------------
+INFO|2020-06-14 08:10:57,159|pysph.solver.application|Callbacks:
+----------------------------------------------------------------------
+
+INFO|2020-06-14 08:10:57,159|pysph.solver.application|Pre-step callbacks:
+[]
+
+INFO|2020-06-14 08:10:57,159|pysph.solver.application|Post-step callbacks:
+[]
+
+INFO|2020-06-14 08:10:57,160|pysph.solver.application|Post-stage callbacks:
+[]
+----------------------------------------------------------------------
+
+INFO|2020-06-14 08:10:57,160|pysph.solver.application|Setup took: 0.11320 secs
+INFO|2020-06-14 08:10:57,160|pysph.solver.solver|Writing output at time 0, iteration 0, dt = 0.000454545
+INFO|2020-06-14 08:10:58,696|pysph.solver.solver|Writing output at time 0.0454545, iteration 100, dt = 0.000454545
+INFO|2020-06-14 08:11:00,432|pysph.solver.solver|Writing output at time 0.0909091, iteration 200, dt = 0.000454545
+INFO|2020-06-14 08:11:02,289|pysph.solver.solver|Writing output at time 0.136364, iteration 300, dt = 0.000454545
+INFO|2020-06-14 08:11:04,380|pysph.solver.solver|Writing output at time 0.181818, iteration 400, dt = 0.000454545
+INFO|2020-06-14 08:11:06,321|pysph.solver.solver|Writing output at time 0.227273, iteration 500, dt = 0.000454545
+INFO|2020-06-14 08:11:41,232|pysph.solver.application|Started as:
+/home/prajwal/pysph/pysph/examples/taylor_green.py --nx 20 --openmp --scheme wcsph
+INFO|2020-06-14 08:11:41,232|pysph.solver.application|Running on Hope with address 127.0.1.1
+INFO|2020-06-14 08:11:41,232|pysph.solver.application|Using OpenMP
+INFO|2020-06-14 08:11:41,232|pysph.solver.application|Using OpenMP schedule dynamic,64
+INFO|2020-06-14 08:11:41,282|pysph.solver.application|Generating output in /home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/taylor_green_output
+INFO|2020-06-14 08:11:41,385|compyle.ext_module|Compiling code at: /home/prajwal/.pysph/source/py3.6-linux-x86_64/m_857fe8ea217ae343e34aef70f8690b83.pyx
+INFO|2020-06-14 08:11:48,595|pysph.solver.application|Started multiprocessing interface on 0.0.0.0:8800
+INFO|2020-06-14 08:11:48,595|pysph.solver.application|----------------------------------------------------------------------
+No of particles:
+  fluid: 1024
+----------------------------------------------------------------------
+INFO|2020-06-14 08:11:48,596|pysph.solver.application|Using kernel:
+----------------------------------------------------------------------
+  QuinticSpline(dim=2)
+----------------------------------------------------------------------
+INFO|2020-06-14 08:11:48,596|pysph.solver.application|Using nnps:
+----------------------------------------------------------------------
+  LinkedListNNPS(dim=2)
+----------------------------------------------------------------------
+INFO|2020-06-14 08:11:48,596|pysph.solver.application|Using integrator:
+----------------------------------------------------------------------
+  PECIntegrator(fluid=WCSPHStep())
+----------------------------------------------------------------------
+INFO|2020-06-14 08:11:48,597|pysph.solver.application|Using equations:
+----------------------------------------------------------------------
+[
+Group(equations=[
+    TaitEOS(dest='fluid', sources=None, rho0=1.0, c0=10.0, gamma=7.0,
+    p0=0.0)
+  ],
+  real=False, update_nnps=False, iterate=False, max_iterations=1,
+  min_iterations=0, pre=None, post=None),
+Group(equations=[
+    ContinuityEquation(dest='fluid', sources=['fluid']), 
+    MomentumEquation(dest='fluid', sources=['fluid'], c0=10.0, alpha=0.0,
+    beta=0.0, gx=0.0, gy=0.0, gz=0.0, tensile_correction=False), 
+    LaminarViscosity(dest='fluid', sources=['fluid'], nu=0.01, eta=0.01), 
+    XSPHCorrection(dest='fluid', sources=['fluid'], eps=0.5)
+  ],
+  real=True, update_nnps=False, iterate=False, max_iterations=1,
+  min_iterations=0, pre=None, post=None)
+]
+----------------------------------------------------------------------
+INFO|2020-06-14 08:11:48,597|pysph.solver.application|Callbacks:
+----------------------------------------------------------------------
+
+INFO|2020-06-14 08:11:48,597|pysph.solver.application|Pre-step callbacks:
+[]
+
+INFO|2020-06-14 08:11:48,597|pysph.solver.application|Post-step callbacks:
+[]
+
+INFO|2020-06-14 08:11:48,597|pysph.solver.application|Post-stage callbacks:
+[]
+----------------------------------------------------------------------
+
+INFO|2020-06-14 08:11:48,597|pysph.solver.application|Setup took: 7.36783 secs
+INFO|2020-06-14 08:11:48,598|pysph.solver.solver|Writing output at time 0, iteration 0, dt = 0.00113636
+INFO|2020-06-14 08:11:49,356|pysph.solver.solver|Writing output at time 0.113636, iteration 100, dt = 0.00113636
+INFO|2020-06-14 08:11:50,126|pysph.solver.solver|Writing output at time 0.227273, iteration 200, dt = 0.00113636
+INFO|2020-06-14 08:11:50,879|pysph.solver.solver|Writing output at time 0.340909, iteration 300, dt = 0.00113636
+INFO|2020-06-14 08:11:51,679|pysph.solver.solver|Writing output at time 0.454545, iteration 400, dt = 0.00113636
+INFO|2020-06-14 08:11:52,451|pysph.solver.solver|Writing output at time 0.568182, iteration 500, dt = 0.00113636
+INFO|2020-06-14 08:11:53,237|pysph.solver.solver|Writing output at time 0.681818, iteration 600, dt = 0.00113636
+INFO|2020-06-14 08:11:53,985|pysph.solver.solver|Writing output at time 0.795455, iteration 700, dt = 0.00113636
+INFO|2020-06-14 08:11:54,769|pysph.solver.solver|Writing output at time 0.909091, iteration 800, dt = 0.00113636
+INFO|2020-06-14 08:11:55,530|pysph.solver.solver|Writing output at time 1.02273, iteration 900, dt = 0.00113636
+INFO|2020-06-14 08:11:56,285|pysph.solver.solver|Writing output at time 1.13636, iteration 1000, dt = 0.00113636
+INFO|2020-06-14 08:11:57,038|pysph.solver.solver|Writing output at time 1.25, iteration 1100, dt = 0.00113636
+INFO|2020-06-14 08:11:58,130|pysph.solver.solver|Writing output at time 1.36364, iteration 1200, dt = 0.00113636
+INFO|2020-06-14 08:11:58,948|pysph.solver.solver|Writing output at time 1.47727, iteration 1300, dt = 0.00113636
+INFO|2020-06-14 08:11:59,676|pysph.solver.solver|Writing output at time 1.59091, iteration 1400, dt = 0.00113636
+INFO|2020-06-14 08:12:00,509|pysph.solver.solver|Writing output at time 1.70455, iteration 1500, dt = 0.00113636
+INFO|2020-06-14 08:12:01,277|pysph.solver.solver|Writing output at time 1.81818, iteration 1600, dt = 0.00113636
+INFO|2020-06-14 08:12:02,031|pysph.solver.solver|Writing output at time 1.93182, iteration 1700, dt = 0.00113636
+INFO|2020-06-14 08:12:02,471|pysph.solver.solver|Writing output at time 2, iteration 1760, dt = 0.00113636
+INFO|2020-06-14 08:12:02,473|pysph.solver.application|Run took: 13.87486 secs
+INFO|2020-06-14 08:12:02,745|compyle.ext_module|Compiling code at: /home/prajwal/.pysph/source/py3.6-linux-x86_64/m_2ffac77820430cb65526aa9866e8c98c.pyx

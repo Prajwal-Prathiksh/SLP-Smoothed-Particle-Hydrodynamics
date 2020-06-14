@@ -1,0 +1,1 @@
+{"fname": "taylor_green", "output_dir": "/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/taylor_green_output", "args": ["--nx", "20", "--openmp", "--scheme", "wcsph"], "completed": true, "cpu_time": 13.874860286712646}

@@ -1,10 +1,11 @@
 # PySPH base imports
 from pysph.base.utils import get_particle_array_wcsph
-from pysph.base.kernels import CubicSpline
+from pysph.base.kernels import QuinticSpline
 
 #PySPH solver imports
 from pysph.solver.application import Application
 from pysph.solver.solver import Solver
+from pysph.solver.tools import SimpleRemesher
 
 #PySPH sph imports
 from pysph.sph.equation import Equation, Group
@@ -19,6 +20,33 @@ pi = np.pi
 from Delta_Plus_SPH import EOS_DeltaPlus_SPH, MomentumEquation_DeltaPlus_SPH, ContinuityEquation_DeltaPlus_SPH
 ##NOTE: git checkout b139a3ba 
 
+def m4p(x=0.0):
+    """From the paper by Chaniotis et al. (JCP 2002).
+    """
+    if x < 0.0:
+        return 0.0
+    elif x < 1.0:
+        return 1.0 - 0.5*x*x*(5.0 - 3.0*x)
+    elif x < 2.0:
+        return (1 - x)*(2 - x)*(2 - x)*0.5
+    else:
+        return 0.0
+
+
+class M4(Equation):
+    '''An equation to be used for remeshing.
+    '''
+
+    def initialize(self, d_idx, d_prop):
+        d_prop[d_idx] = 0.0
+
+    def _get_helpers_(self):
+        return [m4p]
+
+    def loop(self, s_idx, d_idx, s_temp_prop, d_prop, d_h, XIJ):
+        xij = abs(XIJ[0]/d_h[d_idx])
+        yij = abs(XIJ[1]/d_h[d_idx])
+        d_prop[d_idx] += m4p(xij)*m4p(yij)*s_temp_prop[s_idx]
 
 def exact_solution(U, b, t, x, y):
     factor = U * np.exp(b*t)
@@ -34,7 +62,7 @@ class EulerIntegrator(Integrator):
         self.initialize()
         self.compute_accelerations()
         self.stage1()
-        #self.stage2()
+        self.stage2()
         self.do_post_stage(dt,1)
 
 class EulerStep(IntegratorStep):
@@ -50,16 +78,18 @@ class EulerStep(IntegratorStep):
 
         d_rho[d_idx] += dt*d_arho[d_idx]
 
-    '''def stage2(self, d_idx, d_x, d_y):
+    def stage2(self, d_idx, d_x, d_y):
  
         if d_x[d_idx] > pi:
             d_x[d_idx] = pi - d_x[d_idx]
 
         if d_y[d_idx] > pi:
-            d_y[d_idx] = pi - d_y[d_idx]'''
+            d_y[d_idx] = pi - d_y[d_idx]
 
 class Taylor_Green(Application):
     def initialize(self):
+        self.remesh = 20
+
         self.nx = 50.0
         self.re = 100.0
         self.U = 1.0
@@ -67,7 +97,7 @@ class Taylor_Green(Application):
         self.rho0 = 1000.0
 
         self.c0 = 15.0
-        self.hdx = 1.3
+        self.hdx = 1.0
 
         self.nu = self.L * self.U/self.re
         self.mu = self.nu * self.rho0
@@ -84,7 +114,7 @@ class Taylor_Green(Application):
         dt_viscous = 0.125 * self.h0**2 / self.nu
         dt_force = 0.25 * 1.0
 
-        self.dt = min(dt_cfl, dt_viscous, dt_force)
+        self.dt = min(dt_cfl, dt_viscous, dt_force)/10.0
         self.tf = 2.0
 
     def create_particles(self):
@@ -106,9 +136,23 @@ class Taylor_Green(Application):
 
         return [pa_fluid]
 
+
+    def create_tools(self):
+        
+        tools = []
+        equations = [M4(dest='interpolate', sources=['fluid'])]
+        equations = None
+        props = ['u', 'v', 'au', 'av', 'ax', 'ay', 'arho']
+
+        remesher = SimpleRemesher(self, 'fluid', props=props, freq=self.remesh, equations=equations)
+        tools.append(remesher)
+
+        return tools
+
+
     def create_solver(self):
 
-        kernel = CubicSpline(dim=2)
+        kernel = QuinticSpline(dim=2)
         
         integrator = EulerIntegrator(fluid = EulerStep())
 
@@ -140,11 +184,11 @@ class Taylor_Green(Application):
     # Post processing
     def _get_post_process_props(self, array):
         """
-        Return x, y, u, v
+        Return x, y, u, v, m
         """
-        x, y, u, v = array.get('x', 'y', 'u', 'v')
+        x, y, u, v, m = array.get('x', 'y', 'u', 'v', 'm')
         
-        return x, y, u, v
+        return x, y, u, v, m
 
     def post_process(self, info_fname):
 
@@ -160,14 +204,14 @@ class Taylor_Green(Application):
         for sd, array in iter_output(files, 'fluid'):
             _t = sd['t']
             t.append(_t)
-            x, y, u, v = self._get_post_process_props(array)
+            x, y, u, v, m = self._get_post_process_props(array)
             u_e, v_e, p_e = exact_solution(self.U, decay_rate, _t, x, y)
             vmag2 = u**2 + v**2
             vmag = np.sqrt(vmag2)
-            ke.append(0.5 * np.sum(self.m0 * vmag2))
+            ke.append(0.5 * np.sum(m * vmag2))
             vmag2_e = u_e**2 + v_e**2
             vmag_e = np.sqrt(vmag2_e)
-            ke_ex.append(0.5 * np.sum(self.m0 * vmag2_e))
+            ke_ex.append(0.5 * np.sum(m * vmag2_e))
 
             vmag_max = vmag.max()
             decay.append(vmag_max)
