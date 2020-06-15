@@ -88,7 +88,7 @@ class Taylor_Green(Application):
         # Simulation Parameters
         self.remesh = 0
 
-        self.nx = 50.0
+        self.nx = 50
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
@@ -179,7 +179,7 @@ class Taylor_Green(Application):
 
         solver = Solver(
             kernel=kernel, dim=2, integrator=integrator, dt=self.dt, tf=self.tf, 
-            pfreq=10
+            pfreq=100
         )
 
         return solver
