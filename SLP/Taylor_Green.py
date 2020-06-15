@@ -10,14 +10,17 @@ from pysph.solver.tools import SimpleRemesher
 #PySPH sph imports
 from pysph.sph.equation import Equation, Group
 from pysph.sph.integrator import Integrator, IntegratorStep
+from pysph.base.nnps import DomainManager
 
 # Additional import
 import numpy as np
 import os
+import sys
+sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics')
 pi = np.pi
 
 # Import Delta_Plus - SPH Equations
-from Delta_Plus_SPH import EOS_DeltaPlus_SPH, MomentumEquation_DeltaPlus_SPH, ContinuityEquation_DeltaPlus_SPH
+from SLP.Delta_Plus_SPH import EOS_DeltaPlus_SPH, MomentumEquation_DeltaPlus_SPH, ContinuityEquation_DeltaPlus_SPH
 ##NOTE: git checkout b139a3ba 
 
 def m4p(x=0.0):
@@ -62,7 +65,6 @@ class EulerIntegrator(Integrator):
         self.initialize()
         self.compute_accelerations()
         self.stage1()
-        self.stage2()
         self.do_post_stage(dt,1)
 
 class EulerStep(IntegratorStep):
@@ -78,17 +80,9 @@ class EulerStep(IntegratorStep):
 
         d_rho[d_idx] += dt*d_arho[d_idx]
 
-    def stage2(self, d_idx, d_x, d_y):
- 
-        if d_x[d_idx] > pi:
-            d_x[d_idx] = pi - d_x[d_idx]
-
-        if d_y[d_idx] > pi:
-            d_y[d_idx] = pi - d_y[d_idx]
-
 class Taylor_Green(Application):
     def initialize(self):
-        self.remesh = 20
+        self.remesh = 0
 
         self.nx = 50.0
         self.re = 100.0
@@ -97,7 +91,7 @@ class Taylor_Green(Application):
         self.rho0 = 1000.0
 
         self.c0 = 15.0
-        self.hdx = 1.0
+        self.hdx = 1.2
 
         self.nu = self.L * self.U/self.re
         self.mu = self.nu * self.rho0
@@ -114,8 +108,11 @@ class Taylor_Green(Application):
         dt_viscous = 0.125 * self.h0**2 / self.nu
         dt_force = 0.25 * 1.0
 
-        self.dt = min(dt_cfl, dt_viscous, dt_force)/10.0
+        self.dt = min(dt_cfl, dt_viscous, dt_force)
         self.tf = 2.0
+
+        print('dx : ', self.dx)
+        print('dt : ', self.dt)
 
     def create_particles(self):
         '''
@@ -123,8 +120,10 @@ class Taylor_Green(Application):
         '''
         dx = self.dx
         L = self.L
+        _x = np.arange(dx / 2, L, dx)
+
         # Fluid
-        x0, y0 = np.mgrid[dx/2: L-dx/2:dx, dx/2: L-dx/2:dx]
+        x0, y0 = np.meshgrid(_x, _x)
         
         b = -8.0-pi*pi/self.re
 
@@ -136,17 +135,21 @@ class Taylor_Green(Application):
 
         return [pa_fluid]
 
+    def create_domain(self):
+        L1 = self.L + self.dx*2
+        L0 = -self.dx*2
+        return DomainManager(xmin=L0, xmax=L1, ymin=L0, ymax=L1, periodic_in_x=True, periodic_in_y=True)
 
-    def create_tools(self):
-        
+
+    def create_tools(self):        
         tools = []
-        equations = [M4(dest='interpolate', sources=['fluid'])]
-        equations = None
-        props = ['u', 'v', 'au', 'av', 'ax', 'ay', 'arho']
+        if self.remesh > 0:
+            equations = [M4(dest='interpolate', sources=['fluid'])]
+            equations = None
+            props = ['u', 'v', 'au', 'av', 'ax', 'ay', 'arho']
 
-        remesher = SimpleRemesher(self, 'fluid', props=props, freq=self.remesh, equations=equations)
-        tools.append(remesher)
-
+            remesher = SimpleRemesher(self, 'fluid', props=props, freq=self.remesh, equations=equations)
+            tools.append(remesher)
         return tools
 
 
@@ -156,9 +159,7 @@ class Taylor_Green(Application):
         
         integrator = EulerIntegrator(fluid = EulerStep())
 
-        solver = Solver(
-            kernel=kernel, dim=2, integrator=integrator, dt=self.dt, tf=self.tf, pfreq=100,
-        )
+        solver = Solver(kernel=kernel, dim=2, integrator=integrator, dt=self.dt, tf=self.tf, pfreq=10)
         return solver
 
     def create_equations(self):
