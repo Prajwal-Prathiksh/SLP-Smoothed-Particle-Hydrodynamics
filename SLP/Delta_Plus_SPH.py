@@ -600,8 +600,24 @@ class RDGC_DeltaPlus_SPH(Equation):
 
         super(RDGC_DeltaPlus_SPH, self).__init__(dest, sources)
 
-    def initialize(self, d_idx, d_gradRho):
-        d_gradRho[d_idx] = 0.0
+    def initialize(self, d_idx, d_grad_rho1, d_grad_rho2):
+        d_grad_rho1[d_idx] = 0.0
+        d_grad_rho2[d_idx] = 0.0
 
-    def loop(self, d_idx, s_idx, d_gradRho):
-        pass
+    def loop(
+        self, d_idx, s_idx, d_grad_rho1, d_grad_rho2, d_rho, s_rho, d_L00, d_L01, 
+        d_L10, d_L11, DWIJ, s_m
+    ):
+
+        rhoi = d_rho[d_idx]
+        rhoj = s_rho[s_idx]
+
+        Vj = s_m[s_idx]/rhoj
+
+        rhoji = rhoj - rhoi
+
+        tmp1 = d_L00[d_idx]*DWIJ[0] + d_L01[d_idx]*DWIJ[1]
+        tmp2 = d_L10[d_idx]*DWIJ[0] + d_L11[d_idx]*DWIJ[1]
+
+        d_grad_rho1[d_idx] += rhoji*tmp1*Vj
+        d_grad_rho2[d_idx] += rhoji*tmp2*Vj
