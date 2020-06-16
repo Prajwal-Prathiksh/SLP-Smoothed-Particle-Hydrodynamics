@@ -97,7 +97,10 @@ class ContinuityEquation_DeltaPlus_SPH(Equation):
     def initialize(self, d_idx, d_arho):
         d_arho[d_idx] = 0.0
 
-    def loop(self, d_idx, s_idx, d_arho, d_rho, VIJ, DWIJ, s_m, s_rho, XIJ, R2IJ, EPS):
+    def loop(
+        self, d_idx, s_idx, d_arho, d_rho, VIJ, DWIJ, s_m, s_rho, XIJ, R2IJ, 
+        EPS
+    ):
         
         rhoi = d_rho[d_idx]
         rhoj = s_rho[s_idx]
@@ -106,7 +109,8 @@ class ContinuityEquation_DeltaPlus_SPH(Equation):
         Vj = s_m[s_idx]/rhoj
 
         vijdotDWij = VIJ[0]*DWIJ[0] + VIJ[1]*DWIJ[1] + VIJ[2]*DWIJ[2]
-        xjidotDWij = -1.0 * (XIJ[0]*DWIJ[0] + XIJ[1]*DWIJ[1] + XIJ[2]*DWIJ[2]) # Multipled with -1 to convert XIJ to XJI
+        xjidotDWij = -1.0 * (XIJ[0]*DWIJ[0] + XIJ[1]*DWIJ[1] + XIJ[2]*DWIJ[2]) 
+        # Multipled with -1 to convert XIJ to XJI
 
 
         # psi_ij
@@ -116,7 +120,8 @@ class ContinuityEquation_DeltaPlus_SPH(Equation):
         tmp1 = rhoi * vijdotDWij
 
         # Dissipative diffusive term
-        tmp2 = self.CONST * psi_ij * xjidotDWij / (R2IJ + EPS) # NOTE: R2JI = R2IJ
+        tmp2 = self.CONST * psi_ij * xjidotDWij / (R2IJ + EPS) 
+        # NOTE: R2JI = R2IJ, since norm is symmertric
 
         d_arho[d_idx] +=  (tmp1 + tmp2) * Vj
 
@@ -187,7 +192,10 @@ class MomentumEquation_DeltaPlus_SPH(Equation):
         d_av[d_idx] = 0.0
         d_aw[d_idx] = 0.0
 
-    def loop(self, d_idx, s_idx, d_rho, s_rho, DWIJ, s_m, VIJ, XIJ, R2IJ, d_au, d_av, d_aw, d_p, s_p, EPS):
+    def loop(
+        self, d_idx, s_idx, d_rho, s_rho, DWIJ, s_m, VIJ, XIJ, R2IJ, d_au, d_av,
+        d_aw, d_p, s_p, EPS
+    ):
         
         rhoj = s_rho[s_idx]
         Vj = s_m[s_idx] / rhoj
@@ -215,7 +223,7 @@ class MomentumEquation_DeltaPlus_SPH(Equation):
 
     def post_loop(self, d_idx, d_au, d_av, d_aw, d_rho):
                 
-        rhoi = d_rho[d_idx] #Mome
+        rhoi = d_rho[d_idx]
         
         d_au[d_idx] = d_au[d_idx] / rhoi + self.fx
         d_av[d_idx] = d_av[d_idx] / rhoi + self.fy
@@ -243,6 +251,21 @@ class RenormalizationTensor2D_DeltaPlus_SPH(Equation):
         vol. 229, no. 10, May 2010, pp. 3652–63. DOI.org (Crossref), 
         doi:10.1016/j.jcp.2010.01.019.
     """
+    def __init__(self, dest, sources, dim):
+        r"""
+        Parameters:
+        -----------
+        dim : integer
+            Number of dimensions
+        """
+        if self.dim != 2:
+            raise ValueError("Dimension must be 2!")
+        else:
+            self.dim = dim
+
+        super(RenormalizationTensor2D_DeltaPlus_SPH, self).__init__(dest, sources)
+    
+    
     def _cython_code_(self):
         r"""
         Import eigen_decomposition function
@@ -263,7 +286,9 @@ class RenormalizationTensor2D_DeltaPlus_SPH(Equation):
 
         d_lambda = 0.0 # Initialize \lambda_i
 
-    def loop(self, d_idx, s_idx, XIJ, DWIJ, s_m, s_rho, d_L00, d_L01, d_L10, d_L11):
+    def loop(
+        self, d_idx, s_idx, XIJ, DWIJ, s_m, s_rho, d_L00, d_L01, d_L10, d_L11
+    ):
         r"""
         Computes the renormalization tensor
         
@@ -321,7 +346,7 @@ class RenormalizationTensor2D_DeltaPlus_SPH(Equation):
         # Compute eigenvalues
         eigen_decomposition(Li, eig_vect, cython.address(eig_val[0]))
 
-        # Store lambda_i
+        # Store lambda_i with the smaller eigenvalue
         if eig_val[0] <= eig_val[1]:
             d_lambda[d_idx] = eig_val[0]
         else:
@@ -343,7 +368,7 @@ class ContinuityEquation_RDGC_DeltaPlus_SPH(Equation):
             \nabla\rho\rangle_j L).\mathbf{r_{ji}}
 
         ..math::
-            \langle\nabla\rho\rangle_i^L=\sum_j(\rho_j-\rho_j)\mathbb{L}_{i}.
+            \langle\nabla\rho\rangle_i^L=\sum_j(\rho_j-\rho_i)\mathbb{L}_{i}.
             \nabla_i W_{ij}V_j
 
         References:
@@ -383,10 +408,32 @@ class ContinuityEquation_RDGC_DeltaPlus_SPH(Equation):
     def initialize(self, d_idx, d_arho):
         d_arho[d_idx] = 0.0
 
-        #######################################
-        #### Code is currently being written!!
-        #######################################
-        pass
+    def loop(
+        self, d_idx, s_idx, d_arho, d_rho, VIJ, DWIJ, s_m, s_rho, XIJ, R2IJ, 
+        EPS
+    ):
+        
+        rhoi = d_rho[d_idx]
+        rhoj = s_rho[s_idx]
+
+        # Volume element
+        Vj = s_m[s_idx]/rhoj
+
+        vijdotDWij = VIJ[0]*DWIJ[0] + VIJ[1]*DWIJ[1] + VIJ[2]*DWIJ[2]
+        xjidotDWij = -1.0 * (XIJ[0]*DWIJ[0] + XIJ[1]*DWIJ[1] + XIJ[2]*DWIJ[2]) 
+        # Multipled with -1 to convert XIJ to XJI
+
+        # psi_ij
+        psi_ij = 2 * (rhoj - rhoi)
+
+        # Continuity density term
+        tmp1 = rhoi * vijdotDWij
+
+        # Dissipative diffusive term
+        tmp2 = self.CONST * psi_ij * xjidotDWij / (R2IJ + EPS) 
+        # NOTE: R2JI = R2IJ, since norm is symmetric
+
+        d_arho[d_idx] +=  (tmp1 + tmp2) * Vj
 
 class ParticleShiftingTechnique(Equation):
     r"""*Particle-Shifting Technique employed in
@@ -472,4 +519,89 @@ class ParticleShiftingTechnique(Equation):
         #######################################
         #### Code is currently being written!!
         #######################################
+        pass
+
+class AverageSpacing(Equation):
+    r"""*Average particle spacing in the neighbourhood of the :math:`i^{th}` 
+        particle*
+
+        ..math::
+            \Delta p_i = \frac{1}{N_i}\sum_j |\mathbf{r}_{ij}|
+
+        where, :math:`N_i = ` number of neighbours of the :math:`i^{th}` particle
+
+        References:
+        -----------
+        .. [Monaghan2000] Monaghan, J. J. “SPH without a Tensile Instability.” 
+        Journal of Computational Physics, vol. 159, no. 2, Apr. 2000, pp. 
+        290–311. DOI.org (Crossref), doi:10.1006/jcph.2000.6439.
+    """
+    def __init__(self, dest, sources, dim):
+        r"""
+        Parameters:
+        -----------
+        dim : integer
+            Number of dimensions
+        """
+        self.dim = dim
+        super(AverageSpacing, self).__init__(dest, sources)
+
+    def initialize(self, d_idx, d_delta_p):
+        d_delta_p[d_idx] = 0.0
+
+    def loop_all(self, d_idx, d_delta_p, d_x, d_y, d_z, s_x, s_y, s_z, NBRS, N_NBRS):
+        
+        i = declare('int')
+        s_idx = declare('long')
+        xij = declare('matrix(3)')
+        rij = 0.0
+        sum = 0.0
+
+        for i in range(N_NBRS):
+            s_idx = NBRS[i]
+            xij[0] = d_x[d_idx] - s_x[s_idx]
+            xij[1] = d_y[d_idx] - s_y[s_idx]
+            xij[2] = d_z[d_idx] - s_z[s_idx]
+            rij = sqrt(xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2])
+            
+            sum += rij
+        
+        d_delta_p[d_idx] = sum/N_NBRS            
+        #sum = sum/N_NBRS
+        #d_delta_p[d_idx] += sum
+
+class RDGC_DeltaPlus_SPH(Equation):
+    r"""*The renormalized density gradient correction (RDGC) term  defined by 
+        the Delta_plus SPH scheme*
+
+        ..math::
+            \langle\nabla\rho\rangle_i^L=\sum_j(\rho_j-\rho_i)\mathbb{L}_{i}.
+            \nabla_i W_{ij}V_j
+
+        References:
+        -----------
+        .. [Marrone2011] Marrone, S., et al. “δ-SPH Model for Simulating Violent
+            Impact Flows.” Computer Methods in Applied Mechanics and 
+            Engineering, vol. 200, no. 13–16, Mar. 2011, pp. 1526–42. DOI.org 
+            (Crossref), doi:10.1016/j.cma.2010.12.016.
+    """
+
+    def __init__(self, dest, sources, dim):
+        r"""
+        Parameters:
+        -----------
+        dim : integer
+            Number of dimensions
+        """
+        if self.dim != 2:
+            raise ValueError("Dimension must be 2!")
+        else:
+            self.dim = dim
+
+        super(RDGC_DeltaPlus_SPH, self).__init__(dest, sources)
+
+    def initialize(self, d_idx, d_gradRho):
+        d_gradRho[d_idx] = 0.0
+
+    def loop(self, d_idx, s_idx, d_gradRho):
         pass
