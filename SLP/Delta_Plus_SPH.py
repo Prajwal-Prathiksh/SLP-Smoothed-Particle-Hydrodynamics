@@ -384,7 +384,7 @@ class ContinuityEquation_RDGC_DeltaPlus_SPH(Equation):
             doi:10.1016/j.jfluidstructs.2013.05.010.
         """
     
-    def __init__(self, dest, sources, delta, c0, H):
+    def __init__(self, dest, sources, delta, c0, H, dim):
         r'''
         Parameters:
         -----------
@@ -394,7 +394,14 @@ class ContinuityEquation_RDGC_DeltaPlus_SPH(Equation):
             Maximum speed of sound expected in the system (:math:`c0`)
         H : float
             Kernel smoothing length (:math:`h`)
+        dim : integer
+            Number of dimensions
         '''
+        
+        if self.dim != 2:
+            raise ValueError("Dimension must be 2!")
+        else:
+            self.dim = dim
 
         self.delta = delta
         self.c0 = c0
@@ -409,8 +416,8 @@ class ContinuityEquation_RDGC_DeltaPlus_SPH(Equation):
         d_arho[d_idx] = 0.0
 
     def loop(
-        self, d_idx, s_idx, d_arho, d_rho, VIJ, DWIJ, s_m, s_rho, XIJ, R2IJ, 
-        EPS
+        self, d_idx, s_idx, d_arho, d_rho, VIJ, DWIJ, s_m, s_rho, XIJ, R2IJ, EPS,
+        d_grad_rho1, d_grad_rho2, s_grad_rho1, s_grad_rho2
     ):
         
         rhoi = d_rho[d_idx]
@@ -423,8 +430,11 @@ class ContinuityEquation_RDGC_DeltaPlus_SPH(Equation):
         xjidotDWij = -1.0 * (XIJ[0]*DWIJ[0] + XIJ[1]*DWIJ[1] + XIJ[2]*DWIJ[2]) 
         # Multipled with -1 to convert XIJ to XJI
 
+        # RDGC Term
+        rdgcTerm = (d_grad_rho1[d_idx] + s_grad_rho1[s_idx])*XIJ[0] + ( d_grad_rho2[d_idx] + s_grad_rho2[s_idx] )*XIJ[1]
+                
         # psi_ij
-        psi_ij = 2 * (rhoj - rhoi)
+        psi_ij = 2 * (rhoj - rhoi) + rdgcTerm # Since XJI = -XIJ
 
         # Continuity density term
         tmp1 = rhoi * vijdotDWij
