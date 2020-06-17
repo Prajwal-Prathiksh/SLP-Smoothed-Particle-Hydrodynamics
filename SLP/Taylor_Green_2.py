@@ -26,8 +26,7 @@ sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-H
 
 # Import Delta_Plus - SPH Equations
 from SLP.dpsph.governing_equations import (
-    EOS_DPSPH, ContinuityEquation_RDGC_DPSPH, MomentumEquation_DPSPH,
-    ContinuityEquation_DPSPH
+    EOS_DPSPH, ContinuityEquation_RDGC_DPSPH, MomentumEquation_DPSPH
 )
 from SLP.dpsph.equations import (
     RenormalizationTensor2D_DPSPH, RDGC_DPSPH, AverageSpacing

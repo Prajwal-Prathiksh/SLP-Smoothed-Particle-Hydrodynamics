@@ -12,8 +12,7 @@ from pysph.solver.solver import Solver
 
 # PySPH sph imports
 from pysph.sph.equation import Equation, Group
-from pysph.sph.integrator import EulerIntegrator
-from pysph.sph.integrator_step import EulerStep
+from pysph.sph.integrator import Integrator, IntegratorStep
 
 # Numpy import
 import numpy as np
@@ -30,7 +29,8 @@ from SLP.dpsph.governing_equations import (
     ContinuityEquation_DPSPH
 )
 from SLP.dpsph.equations import (
-    RenormalizationTensor2D_DPSPH, RDGC_DPSPH, AverageSpacing
+    RenormalizationTensor2D_DPSPH, RDGC_DPSPH, AverageSpacing, 
+    ParticleShiftingTechnique
 )
 from SLP.dpsph.utils import get_particle_array_dpsph
 
@@ -47,6 +47,41 @@ def exact_solution(U, b, t, x, y):
     p = -0.25 * (np.cos(4*pi*x) + np.cos(4*pi*y))
 
     return factor * u, factor * v, factor * factor * p
+
+
+# Integrator - Code
+class EulerIntegrator_DPSPH(Integrator):
+    def one_timestep(self, t, dt):
+        self.compute_accelerations()
+        self.stage1()
+        self.update_domain()
+        self.do_post_stage(dt, 1)
+
+        self.stage2()
+        self.update_domain()
+        self.do_post_stage(dt, 2)
+
+
+class EulerStep_DPSPH(IntegratorStep):
+    """Fast but inaccurate integrator. Use this for testing"""
+    def stage1(self, d_idx, d_u, d_v, d_w, d_au, d_av, d_aw, d_x, d_y,
+                  d_z, d_rho, d_arho, dt):
+        d_u[d_idx] += dt*d_au[d_idx]
+        d_v[d_idx] += dt*d_av[d_idx]
+        d_w[d_idx] += dt*d_aw[d_idx]
+
+        d_x[d_idx] += dt*d_u[d_idx]
+        d_y[d_idx] += dt*d_v[d_idx]
+        d_z[d_idx] += dt*d_w[d_idx]
+
+        d_rho[d_idx] += dt*d_arho[d_idx]
+
+    def stage2(self, d_idx, d_d_x, d_d_y, d_x, d_y, d_z):
+        """
+        Correction -  ParticleShiftingTechnique
+        """
+        d_x[d_idx] += d_d_x[d_idx]
+        d_y[d_idx] += d_d_y[d_idx]
 
 ################################################################################
 # Tayloy Green Vortex - Application
@@ -171,6 +206,9 @@ class Taylor_Green(Application):
 
                     MomentumEquation_DPSPH(
                         dest='fluid', sources=['fluid'], dim=2, mu=self.mu
+                    ), 
+                    ParticleShiftingTechnique(
+                        dest='fluid', sources=['fluid'], 
                     )
                 ], real=True
             )

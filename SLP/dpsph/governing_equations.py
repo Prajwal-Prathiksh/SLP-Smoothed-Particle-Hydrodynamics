@@ -197,13 +197,13 @@ class MomentumEquation_DPSPH(Equation):
         mu : float
             Dynamic viscosity of the fluid (:math:`\mu = \rho_o \nu`)
 
-        fx : float, Default = 0.0
+        fx : float, default = 0.0
             Body-force in x-axis
 
-        fy : float, Default = 0.0
+        fy : float, default = 0.0
             Body-force in y-axis
 
-        fz : float, Default = 0.0
+        fz : float, default = 0.0
             Body-force in z-axis
     """
     def __init__(self, dest, sources, dim, mu, fx=0.0, fy=0.0, fz=0.0):

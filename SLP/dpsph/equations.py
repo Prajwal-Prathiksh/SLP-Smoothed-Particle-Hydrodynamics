@@ -286,19 +286,17 @@ class ParticleShiftingTechnique(Equation):
         Methods in Applied Mechanics and Engineering, vol. 315, Mar. 2017, pp. 
         25–49. DOI.org (Crossref), doi:10.1016/j.cma.2016.10.028.
 
-        .. [Marrone2011] Marrone, S., et al. “δ-SPH Model for Simulating Violent
-        Impact Flows.” Computer Methods in Applied Mechanics and Engineering, 
-        vol. 200, no. 13–16, Mar. 2011, pp. 1526–42. DOI.org (Crossref), 
-        doi:10.1016/j.cma.2010.12.016.
+        .. [Sun2019] Sun, P. N., et al. “A Consistent Approach to Particle 
+        Shifting in the δ - Plus -SPH Model.” Computer Methods in Applied 
+        Mechanics and Engineering, vol. 348, May 2019, pp. 912–34. DOI.org 
+        (Crossref), doi:10.1016/j.cma.2019.01.045.
 
+        .. [Monaghan2000] Monaghan, J. J. “SPH without a Tensile Instability.” 
+        Journal of Computational Physics, vol. 159, no. 2, Apr. 2000, pp. 
+        290–311. DOI.org (Crossref), doi:10.1006/jcph.2000.6439.
+        
         Parameters:
         -----------
-        R_coeff : float
-            Artificial pressure coefficient
-
-        n_exp : float
-            Artificial pressure exponent
-
         c0 : float
             Maximum speed of sound expected in the system (:math:`c0`)
 
@@ -310,17 +308,17 @@ class ParticleShiftingTechnique(Equation):
 
         dim : integer
             Number of dimensions
+            
+        R_coeff : float
+            Artificial pressure coefficient
+
+        n_exp : float
+            Artificial pressure exponent
     """
-    def __init__(self, dest, sources, R_coeff, n_exp, c0, H, dt, dim):
+    def __init__(self, dest, sources, c0, H, dt, dim, R_coeff=0.2, n_exp=4.0):
         r'''
         Parameters:
         -----------
-        R_coeff : float
-            Artificial pressure coefficient
-
-        n_exp : float
-            Artificial pressure exponent
-
         c0 : float
             Maximum speed of sound expected in the system (:math:`c0`)
 
@@ -332,6 +330,13 @@ class ParticleShiftingTechnique(Equation):
 
         dim : integer
             Number of dimensions
+
+        R_coeff : float, default = 0.2
+            Artificial pressure coefficient
+
+        n_exp : float, default = 4
+            Artificial pressure exponent
+
         '''       
         if dim != 2:
             raise ValueError("RDGC_DPSPH - Dimension must be 2!")
