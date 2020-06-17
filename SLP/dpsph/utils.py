@@ -14,9 +14,9 @@ def get_particle_array_dpsph(constants=None, **props):
 
         This sets the defualt properties to be::
 
-            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'm', 'h', 'L00', 'L01', 'L10',
-            'L11', 'lmda', 'delta_p', 'grad_rho1', 'grad_rho2', 'd_x', 'd_y',
-            'arho', 'au', 'av', 'aw', 'gid', 'pid', 'tag']
+            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'm', 'h', 'L00', 'L01', 
+            'L10', 'L11', 'lmda', 'delta_p', 'grad_rho1', 'grad_rho2', 
+            'd_x', 'd_y', 'arho', 'au', 'av', 'aw', 'gid', 'pid', 'tag']
 
         Parameters:
         -----------

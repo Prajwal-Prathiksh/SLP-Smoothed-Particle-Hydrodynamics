@@ -7,9 +7,10 @@ from pysph.sph.equation import Equation, Group
 
 # Miscellaneous Import
 from textwrap import dedent
+from compyle.api import declare
 
 # Math import
-from math import sqrt
+from math import sqrt, pow
 
 ################################################################################
 # Delta_Plus - SPH Sceheme: Supplementary equations, and Particle Shifting 
@@ -181,9 +182,7 @@ class AverageSpacing(Equation):
             
             sum += rij
         
-        d_delta_p[d_idx] = sum/N_NBRS            
-        #sum = sum/N_NBRS
-        #d_delta_p[d_idx] += sum
+        d_delta_p[d_idx] += sum/N_NBRS            
 
 class RDGC_DPSPH(Equation):
     r"""*The renormalized density gradient correction (RDGC) term  defined by 
@@ -349,13 +348,57 @@ class ParticleShiftingTechnique(Equation):
 
         super(ParticleShiftingTechnique, self).__init__(dest, sources)
 
-    def initialize(self, d_idx, d_del_x, d_del_y):
-        d_del_x[d_idx] = 0.0
-        d_del_y[d_idx] = 0.0
+    def initialize(self, d_idx, d_d_x, d_d_y):
+        d_d_x[d_idx] = 0.0
+        d_d_y[d_idx] = 0.0
 
-    def loop(self, d_idx, s_idx, d_d_x, d_d_y, d_rho, s_rho, s_m, DWIJ, WIJ):
+    def loop_all(
+        self, d_idx, d_x, d_y, d_z, s_x, s_y, s_z, d_rho, s_rho, s_m, s_delta_p, 
+        d_d_x, d_d_y, d_lmda, SPH_KERNEL, NBRS, N_NBRS, d_h, s_h
+    ):
+        if d_lmda[d_idx] <= 0.75:
 
-        #######################################
-        #### Code is currently being written!!
-        #######################################
-        pass
+            d_d_x[d_idx] = 0.0
+            d_d_y[d_idx] = 0.0
+
+        else:
+
+            i = declare('int')
+            s_idx = declare('long')
+            xij = declare('matrix(3)')
+            DWIJ = declare('matrix(3)')
+            rij = 0.0
+            sum1 = 0.0
+            sum2 = 0.0
+            fac = 0.0
+
+            rhoi = d_rho[d_idx]
+
+            for i in range(N_NBRS):
+                s_idx = NBRS[i]
+
+                rhoj = s_rho[s_idx]
+                mj = s_m[s_idx]
+
+                xij[0] = d_x[d_idx] - s_x[s_idx]
+                xij[1] = d_y[d_idx] - s_y[s_idx]
+                xij[2] = d_z[d_idx] - s_z[s_idx]
+                rij = sqrt(xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2])
+                hij = 0.5*(s_h[s_idx] +d_h[d_idx])
+
+                # Calculate Kernel values
+                WIJ = SPH_KERNEL.kernel(xij, rij, hij)
+                SPH_KERNEL.gradient(xij, rij, hij, DWIJ)
+
+                # Calculate W(\delta p) value
+                delta_p = s_delta_p[s_idx]
+                W_delta_p = SPH_KERNEL.kernel(xij, delta_p, hij)
+
+                fac = ( 1.0 + self.R_coeff*pow(WIJ/W_delta_p, self.n_exp) )*( mj/(rhoi+rhoj) )
+
+                sum1 += fac*DWIJ[0]
+                sum2 += fac*DWIJ[1]
+            
+            # Store \delta r_i value
+            d_d_x[d_idx] += sum1*self.CONST/d_h[d_idx]
+            d_d_y[d_idx] += sum2*self.CONST/d_h[d_idx]
