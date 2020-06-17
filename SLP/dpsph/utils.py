@@ -12,10 +12,10 @@ from pysph.base.utils import get_particle_array
 def get_particle_array_dpsph(constants=None, **props):
     """Return a particle array for the Delta_Plus - SPH formulation.
 
-        This sets the defualt properties to be:
+        This sets the defualt properties to be::
 
             ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'm', 'h', 'L00', 'L01', 'L10',
-            'L11', 'lambda', 'delta_p', 'grad_rho1', 'grad_rho2', 'd_x', 'd_y',
+            'L11', 'lmda', 'delta_p', 'grad_rho1', 'grad_rho2', 'd_x', 'd_y',
             'arho', 'au', 'av', 'aw', 'gid', 'pid', 'tag']
 
         Parameters:
@@ -34,7 +34,7 @@ def get_particle_array_dpsph(constants=None, **props):
     """
 
     dpsph_props = [
-        'L00', 'L01', 'L10', 'L11', 'lambda', 'delta_p', 'grad_rho1', 
+        'arho', 'L00', 'L01', 'L10', 'L11', 'lmda', 'delta_p', 'grad_rho1', 
         'grad_rho2', 'd_x', 'd_y'
     ]
 
@@ -44,7 +44,7 @@ def get_particle_array_dpsph(constants=None, **props):
 
     # default property arrays to save out.
     pa.set_output_arrays([
-        'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'm', 'h', 'lambda', 'delta_p',
+        'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'm', 'h', 'lmda', 'delta_p',
         'd_x', 'd_y', 'pid', 'gid'
     ])
 

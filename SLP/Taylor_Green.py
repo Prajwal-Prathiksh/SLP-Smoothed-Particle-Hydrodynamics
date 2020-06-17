@@ -3,7 +3,6 @@
 ###########################################################################
 
 # PySPH base imports
-from pysph.base.utils import get_particle_array_wcsph
 from pysph.base.kernels import QuinticSpline
 from pysph.base.nnps import DomainManager
 
@@ -33,6 +32,7 @@ sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-H
 from SLP.dpsph.governing_equations import (
     EOS_DPSPH, ContinuityEquation_DPSPH, MomentumEquation_DPSPH
 )
+from SLP.dpsph.utils import get_particle_array_dpsph
 
 ##NOTE: git checkout b139a3ba 
 
@@ -136,9 +136,8 @@ class Taylor_Green(Application):
 
         u0, v0, p0 = exact_solution(U=self.U, b=b, t=0, x=x0, y=y0)
 
-
-        pa_fluid = get_particle_array_wcsph(
-            name='fluid', x = x0, y=y0, u=u0, v=v0, p=p0, rho = self.rho0, 
+        pa_fluid = get_particle_array_dpsph(
+            name='fluid',x = x0, y=y0, u=u0, v=v0, p=p0, rho = self.rho0, 
             m=self.m0, h=self.h0
         )
         return [pa_fluid]

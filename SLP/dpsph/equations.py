@@ -66,14 +66,14 @@ class RenormalizationTensor2D_DPSPH(Equation):
         """)
         return code
     
-    def initialize(self, d_idx, d_L00, d_L01, d_L10, d_L11, d_lambda):
+    def initialize(self, d_idx, d_L00, d_L01, d_L10, d_L11, d_lmda):
 
         d_L00[d_idx] = 0.0
         d_L01[d_idx] = 0.0
         d_L10[d_idx] = 0.0
         d_L11[d_idx] = 0.0
 
-        d_lambda = 0.0 # Initialize \lambda_i
+        d_lmda = 0.0 # Initialize \lambda_i
 
     def loop(
         self, d_idx, s_idx, XIJ, DWIJ, s_m, s_rho, d_L00, d_L01, d_L10, d_L11
@@ -104,7 +104,7 @@ class RenormalizationTensor2D_DPSPH(Equation):
         d_L10 += a10*Vj
         d_L11 += a11*Vj
 
-    def post_loop(self, d_idx, d_L00, d_L01, d_L10, d_L11, d_lambda, EPS):
+    def post_loop(self, d_idx, d_L00, d_L01, d_L10, d_L11, d_lmda, EPS):
 
         # Matrix of Eigenvectors (columns)
         eig_vect = declare('matrix((2,2))')
@@ -137,9 +137,9 @@ class RenormalizationTensor2D_DPSPH(Equation):
 
         # Store lambda_i with the smaller eigenvalue
         if eig_val[0] <= eig_val[1]:
-            d_lambda[d_idx] = eig_val[0]
+            d_lmda[d_idx] = eig_val[0]
         else:
-            d_lambda[d_idx] = eig_val[1]
+            d_lmda[d_idx] = eig_val[1]
 
 class ParticleShiftingTechnique(Equation):
     r"""*Particle-Shifting Technique employed in
