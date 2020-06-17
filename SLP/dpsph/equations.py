@@ -324,8 +324,8 @@ class ParticleShiftingTechnique(Equation):
             (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
     """
     def __init__(
-        self, dest, sources, H, dim, cfl=0.75, Uc0=15.0, R_coeff=0.2, n_exp=4.0,
-        Rh=0.075
+        self, dest, sources, H, dim, cfl=0.5, Uc0=15.0, R_coeff=0.2, n_exp=4.0,
+        Rh=0.115
     ):
         r'''
             Parameters:
@@ -336,7 +336,7 @@ class ParticleShiftingTechnique(Equation):
             dim : integer
                 Number of dimensions
 
-            cfl : float, default = 0.75
+            cfl : float, default = 0.5
                 CFL value
 
             Uc0 : float. default = 15.0
@@ -376,33 +376,46 @@ class ParticleShiftingTechnique(Equation):
 
     def loop_all(
         self, d_idx, d_x, d_y, d_z, s_x, s_y, s_z, d_rho, s_rho, s_m, d_delta_p, 
-        d_DX, d_DY, d_DRh, d_lmda, SPH_KERNEL, NBRS, N_NBRS
+        d_DX, d_DY, d_DRh, d_lmda, s_lmda, SPH_KERNEL, NBRS, N_NBRS, d_L00, 
+        d_L01, d_L10, d_L11
     ):
         i = declare('int')
         s_idx = declare('long')
         xij = declare('matrix(3)')
         dwij = declare('matrix(3)')
+        ni = declare('matrix(2)')
         rij = 0.0
         sum1 = 0.0
         sum2 = 0.0
         fac = 0.0
-        rhoi = d_rho[d_idx]
+        x = 0.0
+        y = 0.0
+        rh = 0.0
+        sum_nx = 0.0
+        sum_ny = 0.0
 
-        if d_lmda[d_idx] > 0.75:
+        rhoi = d_rho[d_idx]
+        lmdai = d_lmda[d_idx]
+        L00 = d_L00[d_idx]
+        L01 = d_L01[d_idx]
+        L10 = d_L10[d_idx]
+        L11 = d_L11[d_idx]
+
+        if lmdai > 0.4:
             ##################
-            # Case - 1 
+            # Case - 2 & 3
             ##################
 
             # Calculate W(\delta p) value
             delta_p = d_delta_p[d_idx]
             w_delta_p = SPH_KERNEL.kernel(xij, delta_p, self.H)
 
-            ## Calculate \delta r_i
             for i in range(N_NBRS):
                 s_idx = NBRS[i]
 
                 rhoj = s_rho[s_idx]
                 mj = s_m[s_idx]
+                Vj = mj/rhoj
 
                 xij[0] = d_x[d_idx] - s_x[s_idx]
                 xij[1] = d_y[d_idx] - s_y[s_idx]
@@ -413,32 +426,85 @@ class ParticleShiftingTechnique(Equation):
                 wij = SPH_KERNEL.kernel(xij, rij, self.H)
                 SPH_KERNEL.gradient(xij, rij, self.H, dwij)
 
+                ################################################################
+                # Calculate \delta r_i
+                ################################################################
+
                 # Calcuate fij
                 fij = self.R_coeff * pow( (wij/w_delta_p), self.n_exp )
 
-                # Calcuate multipicative factor
+                # Calcuate multiplicative factor
                 fac = (1.0 + fij)*( mj/(rhoi+rhoj) )
 
+                # Sum \delta r_i
                 sum1 += fac*dwij[0]
                 sum2 += fac*dwij[1]
 
+                ################################################################
+                # Calculate n_i
+                ################################################################
+                lmdaj = s_lmda[s_idx]
+                
+                # Calcuate multiplicative factor
+                fac = (lmdai - lmdaj)*Vj
+
+                # Sum n_i
+                sum_nx += (L00*dwij[0] + L01*dwij[1])*fac
+                sum_ny += (L01*dwij[0] + L11*dwij[1])*fac
+
+            # (x,y) components of \delta r_i
             x = sum1*self.CONST
             y = sum2*self.CONST
-            rh = sqrt(x*x + y*y)/self.H
+            
+            if lmdai <= 0.75:
+                ##################
+                # Case - 2
+                ##################
 
-            if rh > self.Rh:
-                # Check Rh condition
-                d_DX[d_idx] += 0.0
-                d_DY[d_idx] += 0.0
-                d_DRh[d_idx] += 0.0
+                ni_norm = sqrt(sum_nx*sum_nx + sum_ny*sum_ny)
+                
+                ni[0] = sum_nx/ni_norm
+                ni[1] = sum_ny/ni_norm
+
+                # I - n_i \otimes n_i
+                M00 = 1.0 - ni[0]*ni[0]
+                M11 = 1.0 - ni[1]*ni[1]
+                M01 = -ni[0]*ni[1]
+                M10 = M01
+
+                # Modified (x_new, y_new) values
+                x_new = M00*x + M01*y
+                y_new = M10*x + M11*y
+
+                rh = sqrt(x_new*x_new + y_new*y_new)/self.H
+                if rh > self.Rh:
+                    # Check Rh condition
+                    d_DX[d_idx] += 0.0
+                    d_DY[d_idx] += 0.0
+                    d_DRh[d_idx] += 0.0
+                else:
+                    d_DX[d_idx] += x_new
+                    d_DY[d_idx] += y_new
+                    d_DRh[d_idx] += rh
+
             else:
-                d_DX[d_idx] += x
-                d_DY[d_idx] += y
-                d_DRh[d_idx] += rh
+                ##################
+                # Case - 3
+                ##################
+                rh = sqrt(x*x + y*y)/self.H
+                if rh > self.Rh:
+                    # Check Rh condition
+                    d_DX[d_idx] += 0.0
+                    d_DY[d_idx] += 0.0
+                    d_DRh[d_idx] += 0.0
+                else:
+                    d_DX[d_idx] += x
+                    d_DY[d_idx] += y
+                    d_DRh[d_idx] += rh
 
         else:
             ##################
-            # Case - 2
+            # Case - 1
             ##################
 
             d_DX[d_idx] += 0.0

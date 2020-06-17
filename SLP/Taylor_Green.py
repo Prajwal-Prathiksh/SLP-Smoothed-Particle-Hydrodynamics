@@ -90,7 +90,7 @@ class Taylor_Green(Application):
         # Simulation Parameters
         self.remesh = 0
 
-        self.nx = 80
+        self.nx = 50
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
