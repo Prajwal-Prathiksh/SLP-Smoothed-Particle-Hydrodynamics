@@ -30,12 +30,15 @@ import sys
 sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics')
 
 # Import Delta_Plus - SPH Equations
-from SLP.Delta_Plus_SPH import EOS_DeltaPlus_SPH, MomentumEquation_DeltaPlus_SPH, ContinuityEquation_DeltaPlus_SPH
+from SLP.dpsph.governing_equations import (
+    EOS_DPSPH, ContinuityEquation_DPSPH, MomentumEquation_DPSPH
+)
+
 ##NOTE: git checkout b139a3ba 
 
-###########################################################################
+################################################################################
 # CODE
-###########################################################################
+################################################################################
 
 # Remeshing Functions
 def m4p(x=0.0):
@@ -49,7 +52,6 @@ def m4p(x=0.0):
         return (1 - x)*(2 - x)*(2 - x)*0.5
     else:
         return 0.0
-
 
 class M4(Equation):
     '''An equation to be used for remeshing.
@@ -76,9 +78,9 @@ def exact_solution(U, b, t, x, y):
 
     return factor * u, factor * v, factor * factor * p
 
-###########################################################################
+################################################################################
 # Tayloy Green Vortex - Application
-###########################################################################
+################################################################################
 class Taylor_Green(Application):
     def initialize(self):
         '''
@@ -191,20 +193,20 @@ class Taylor_Green(Application):
         equations = [
             Group(
                 equations=[
-                    EOS_DeltaPlus_SPH(
-                        dest='fluid', sources=['fluid'],rho0=self.rho0, 
-                        c0=self.c0
+                    EOS_DPSPH(
+                        dest='fluid', sources=['fluid'],rho0=self.rho0,
+                        c0= self.c0
                     )
                 ], real=False       
             ),
     
             Group(
                 equations=[
-                    ContinuityEquation_DeltaPlus_SPH(
+                    ContinuityEquation_DPSPH(
                         dest='fluid', sources=['fluid'], delta=0.1, c0=self.c0, 
                         H=self.h0
                     ), 
-                    MomentumEquation_DeltaPlus_SPH(
+                    MomentumEquation_DPSPH(
                         dest='fluid', sources=['fluid'], dim=2, mu=self.mu
                     )
                 ], real=True
@@ -276,25 +278,26 @@ class Taylor_Green(Application):
         plt.xlabel('t')
         plt.ylabel('max velocity')
         plt.legend()
-        fig = os.path.join(self.output_dir, "decay.png")
+        fig = os.path.join(self.output_dir, "decay_dpsph_1.png")
         plt.savefig(fig, dpi=300)
 
         plt.clf()
         plt.plot(t, linf)
         plt.xlabel('t')
         plt.ylabel(r'$L_\infty$ error')
-        fig = os.path.join(self.output_dir, "linf_error.png")
+        fig = os.path.join(self.output_dir, "linf_error_dpsph_1.png")
         plt.savefig(fig, dpi=300)
 
         plt.clf()
         plt.plot(t, l1, label="error")
         plt.xlabel('t')
         plt.ylabel(r'$L_1$ error')
-        fig = os.path.join(self.output_dir, "l1_error.png")
+        fig = os.path.join(self.output_dir, "l1_erro_dpsph_1.png")
         plt.savefig(fig, dpi=300)
 
-
+################################################################################
 # Main Code
+################################################################################
 if __name__ == '__main__':
     app = Taylor_Green()
     app.run()
