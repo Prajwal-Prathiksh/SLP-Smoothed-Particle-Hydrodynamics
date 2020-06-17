@@ -8,6 +8,9 @@ from pysph.sph.equation import Equation, Group
 # Miscellaneous Import
 from textwrap import dedent
 
+# Math import
+from math import sqrt
+
 ################################################################################
 # Delta_Plus - SPH Sceheme: Supplementary equations, and Particle Shifting 
 # Technique
@@ -47,8 +50,8 @@ class RenormalizationTensor2D_DPSPH(Equation):
         dim : integer
             Number of dimensions
         """
-        if self.dim != 2:
-            raise ValueError("Dimension must be 2!")
+        if dim != 2:
+            raise ValueError("RenormalizationTensor2D_DPSPH - Dimension must be 2!")
         else:
             self.dim = dim
 
@@ -73,7 +76,7 @@ class RenormalizationTensor2D_DPSPH(Equation):
         d_L10[d_idx] = 0.0
         d_L11[d_idx] = 0.0
 
-        d_lmda = 0.0 # Initialize \lambda_i
+        d_lmda[d_idx] = 0.0 # Initialize \lambda_i
 
     def loop(
         self, d_idx, s_idx, XIJ, DWIJ, s_m, s_rho, d_L00, d_L01, d_L10, d_L11
@@ -99,47 +102,40 @@ class RenormalizationTensor2D_DPSPH(Equation):
         a11 = -1.0*XIJ[1]*DWIJ[1]
 
         # Sum Renormalization tensor
-        d_L00 += a00*Vj
-        d_L01 += a01*Vj
-        d_L10 += a10*Vj
-        d_L11 += a11*Vj
+        d_L00[d_idx] += a00*Vj
+        d_L01[d_idx] += a01*Vj
+        d_L10[d_idx] += a10*Vj
+        d_L11[d_idx] += a11*Vj
 
     def post_loop(self, d_idx, d_L00, d_L01, d_L10, d_L11, d_lmda, EPS):
 
-        # Matrix of Eigenvectors (columns)
-        eig_vect = declare('matrix((2,2))')
+        L00 = d_L00[d_idx]
+        L01 = d_L01[d_idx]
+        L10 = d_L10[d_idx]
+        L11 = d_L11[d_idx]
 
-        # Eigenvalues
-        eig_val = declare('matrix((2,))')
-
-        # Renormalization tensor
-        Li = declare('matrix((2,2))')
-
-        # Initialize tensor
-        Li[0][0] = d_L00[d_idx]
-        Li[0][1] = d_L01[d_idx]
-        Li[1][0] = d_L10[d_idx]
-        Li[1][1] = d_L11[d_idx]
-                
-                
         # Calculate determinant
-        Det = Li[0][0]*Li[1][1] - Li[0][1]*Li[1][0]
+        Det = L00*L11 - L01*L10
         Det = Det + EPS # Correction if determinant zero
 
-        # Store the inverse of the tensor
-        d_L00[d_idx] = Li[1][1]/Det
-        d_L01[d_idx] = -1.0*Li[0][1]/Det
-        d_L10[d_idx] = -1.0*Li[1][0]/Det
-        d_L11[d_idx] = Li[0][0]/Det
+        # Quadratic equation to calculate eigen value
+        quad_b = L00 + L11
+        
+        tmp = sqrt(quad_b*quad_b - 4*Det)
+        lmda1 = (quad_b + tmp)/2.0
+        lmda2 = (quad_b - tmp)/2.0
 
-        # Compute eigenvalues
-        eigen_decomposition(Li, eig_vect, cython.address(eig_val[0]))
-
-        # Store lambda_i with the smaller eigenvalue
-        if eig_val[0] <= eig_val[1]:
-            d_lmda[d_idx] = eig_val[0]
+        # Store lambda with the smaller eigenvalue
+        if lmda1 <= lmda2:
+            d_lmda[d_idx] = lmda1
         else:
-            d_lmda[d_idx] = eig_val[1]
+            d_lmda[d_idx] = lmda2
+
+        # Store the inverse of the tensor
+        d_L00[d_idx] = L11/Det 
+        d_L01[d_idx] = -1.0*L01/Det 
+        d_L10[d_idx] = -1.0*L10/Det 
+        d_L11[d_idx] = L00/Det   
 
 class ParticleShiftingTechnique(Equation):
     r"""*Particle-Shifting Technique employed in
@@ -313,9 +309,9 @@ class RDGC_DPSPH(Equation):
         References:
         -----------
         .. [Marrone2011] Marrone, S., et al. “δ-SPH Model for Simulating Violent
-            Impact Flows.” Computer Methods in Applied Mechanics and 
-            Engineering, vol. 200, no. 13–16, Mar. 2011, pp. 1526–42. DOI.org 
-            (Crossref), doi:10.1016/j.cma.2010.12.016.
+        Impact Flows.” Computer Methods in Applied Mechanics and 
+        Engineering, vol. 200, no. 13–16, Mar. 2011, pp. 1526–42. DOI.org 
+        (Crossref), doi:10.1016/j.cma.2010.12.016.
 
         Parameters:
         -----------
@@ -330,8 +326,8 @@ class RDGC_DPSPH(Equation):
         dim : integer
             Number of dimensions
         """
-        if self.dim != 2:
-            raise ValueError("Dimension must be 2!")
+        if dim != 2:
+            raise ValueError("RDGC_DPSPH - Dimension must be 2!")
         else:
             self.dim = dim
 

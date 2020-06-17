@@ -274,7 +274,7 @@ class MomentumEquation_DPSPH(Equation):
         d_aw[d_idx] = d_aw[d_idx] / rhoi + self.fz
 
 class ContinuityEquation_RDGC_DPSPH(Equation):
-    r""" *Continuity equation with diffusive terms and the renormalized density 
+    r"""*Continuity equation with diffusive terms and the renormalized density 
         gradient correction (RDGC) term  defined by the Delta_plus SPH scheme*
 
         ..math::
@@ -295,14 +295,14 @@ class ContinuityEquation_RDGC_DPSPH(Equation):
         References:
         -----------
         .. [Marrone2011] Marrone, S., et al. “δ-SPH Model for Simulating Violent
-            Impact Flows.” Computer Methods in Applied Mechanics and 
-            Engineering, vol. 200, no. 13–16, Mar. 2011, pp. 1526–42. DOI.org 
-            (Crossref), doi:10.1016/j.cma.2010.12.016.
+        Impact Flows.” Computer Methods in Applied Mechanics and 
+        Engineering, vol. 200, no. 13–16, Mar. 2011, pp. 1526–42. DOI.org 
+        (Crossref), doi:10.1016/j.cma.2010.12.016.
 
         .. [Bouscasse2013] Bouscasse, B., et al. “Nonlinear Water Wave 
-            Interaction with Floating Bodies in SPH.” Journal of Fluids and 
-            Structures, vol. 42, Oct. 2013, pp. 112–29. DOI.org (Crossref), 
-            doi:10.1016/j.jfluidstructs.2013.05.010.
+        Interaction with Floating Bodies in SPH.” Journal of Fluids and 
+        Structures, vol. 42, Oct. 2013, pp. 112–29. DOI.org (Crossref), 
+        doi:10.1016/j.jfluidstructs.2013.05.010.
 
         Parameters:
         -----------
@@ -336,8 +336,8 @@ class ContinuityEquation_RDGC_DPSPH(Equation):
             Number of dimensions
         '''
         
-        if self.dim != 2:
-            raise ValueError("Dimension must be 2!")
+        if dim != 2:
+            raise ValueError("ContinuityEquation_RDGC_DPSPH - Dimension must be 2!")
         else:
             self.dim = dim
 
