@@ -92,9 +92,12 @@ class ContinuityEquation_DPSPH(Equation):
 
         H : float
             Kernel smoothing length (:math:`h`)
+
+        dim : integer
+            Number of dimensions
         """
     
-    def __init__(self, dest, sources, delta, c0, H):
+    def __init__(self, dest, sources, delta, c0, H, dim):
         r'''
         Parameters:
         -----------
@@ -106,11 +109,15 @@ class ContinuityEquation_DPSPH(Equation):
 
         H : float
             Kernel smoothing length (:math:`h`)
+
+        dim : integer
+            Number of dimensions
         '''
 
         self.delta = delta
         self.c0 = c0
         self.H = H
+        self.dim = dim
 
         # Calculate constant
         self.CONST = delta * H * c0

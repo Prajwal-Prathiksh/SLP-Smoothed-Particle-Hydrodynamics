@@ -8,3 +8,5 @@ settings.json
 
 Assignments/
 __pycache__/
+
+*_output/

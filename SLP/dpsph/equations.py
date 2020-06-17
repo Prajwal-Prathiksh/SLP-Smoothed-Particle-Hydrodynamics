@@ -56,19 +56,7 @@ class RenormalizationTensor2D_DPSPH(Equation):
             self.dim = dim
 
         super(RenormalizationTensor2D_DPSPH, self).__init__(dest, sources)
-    
-    
-    def _cython_code_(self):
-        r"""
-        Import eigen_decomposition function
-        """
-
-        code = dedent("""
-        cimport cython
-        from pysph.base.linalg3 cimport eigen_decomposition
-        """)
-        return code
-    
+        
     def initialize(self, d_idx, d_L00, d_L01, d_L10, d_L11, d_lmda):
 
         d_L00[d_idx] = 0.0
@@ -76,18 +64,18 @@ class RenormalizationTensor2D_DPSPH(Equation):
         d_L10[d_idx] = 0.0
         d_L11[d_idx] = 0.0
 
-        d_lmda[d_idx] = 0.0 # Initialize \lambda_i
+        d_lmda[d_idx] = 0.0 # Initialize \lambda
 
     def loop(
         self, d_idx, s_idx, XIJ, DWIJ, s_m, s_rho, d_L00, d_L01, d_L10, d_L11
     ):
         r"""
-        Computes the renormalization tensor
-        
-        Paramaters:
-        -----------
-        d_Lxx : DoubleArray
-            Components of the renormalized tensor
+            Computes the renormalization tensor
+            
+            Paramaters:
+            -----------
+            d_Lxx : DoubleArray
+                Components of the renormalized tensor
         """
 
         rhoj = s_rho[s_idx]
@@ -120,16 +108,22 @@ class RenormalizationTensor2D_DPSPH(Equation):
 
         # Quadratic equation to calculate eigen value
         quad_b = L00 + L11
-        
-        tmp = sqrt(quad_b*quad_b - 4*Det)
-        lmda1 = (quad_b + tmp)/2.0
-        lmda2 = (quad_b - tmp)/2.0
 
-        # Store lambda with the smaller eigenvalue
-        if lmda1 <= lmda2:
-            d_lmda[d_idx] = lmda1
+        tmp1 = quad_b*quad_b - 4*Det
+        
+        if tmp1 < 0:
+            d_lmda[d_idx] = 1.0
         else:
-            d_lmda[d_idx] = lmda2
+            tmp = sqrt(tmp1)
+            lmda1 = (quad_b + tmp)/2.0
+            lmda2 = (quad_b - tmp)/2.0
+
+            # Store lambda with the smaller eigenvalue
+            d_lmda[d_idx] = 1.0
+            if lmda1 <= lmda2:
+                d_lmda[d_idx] = lmda1
+            else:
+                d_lmda[d_idx] = lmda2
 
         # Store the inverse of the tensor
         d_L00[d_idx] = L11/Det 

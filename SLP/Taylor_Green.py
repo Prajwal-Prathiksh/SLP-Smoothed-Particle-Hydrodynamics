@@ -203,7 +203,7 @@ class Taylor_Green(Application):
                 equations=[
                     ContinuityEquation_DPSPH(
                         dest='fluid', sources=['fluid'], delta=0.1, c0=self.c0, 
-                        H=self.h0
+                        H=self.h0, dim=2
                     ), 
                     MomentumEquation_DPSPH(
                         dest='fluid', sources=['fluid'], dim=2, mu=self.mu

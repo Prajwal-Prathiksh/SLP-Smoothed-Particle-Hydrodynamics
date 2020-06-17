@@ -26,10 +26,11 @@ sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-H
 
 # Import Delta_Plus - SPH Equations
 from SLP.dpsph.governing_equations import (
-    EOS_DPSPH, ContinuityEquation_RDGC_DPSPH, MomentumEquation_DPSPH
+    EOS_DPSPH, ContinuityEquation_RDGC_DPSPH, MomentumEquation_DPSPH,
+    ContinuityEquation_DPSPH
 )
 from SLP.dpsph.equations import (
-    RenormalizationTensor2D_DPSPH, RDGC_DPSPH
+    RenormalizationTensor2D_DPSPH, RDGC_DPSPH, AverageSpacing
 )
 from SLP.dpsph.utils import get_particle_array_dpsph
 
@@ -57,9 +58,7 @@ class Taylor_Green(Application):
         '''
 
         # Simulation Parameters
-        self.remesh = 0
-
-        self.nx = 50
+        self.nx = 75
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
@@ -161,10 +160,15 @@ class Taylor_Green(Application):
                         dest='fluid', sources=['fluid'], dim=2
                     ),
 
+                    AverageSpacing(
+                        dest='fluid', sources=['fluid'], dim=2
+                    ),
+
                     ContinuityEquation_RDGC_DPSPH(
                         dest='fluid', sources=['fluid'], delta=0.1, c0=self.c0, 
                         H=self.h0, dim=2
-                    ), 
+                    ),
+
                     MomentumEquation_DPSPH(
                         dest='fluid', sources=['fluid'], dim=2, mu=self.mu
                     )
