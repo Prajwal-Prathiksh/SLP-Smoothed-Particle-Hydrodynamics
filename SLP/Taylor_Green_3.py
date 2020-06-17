@@ -3,7 +3,7 @@
 ###########################################################################
 
 # PySPH base imports
-from pysph.base.kernels import QuinticSpline
+from pysph.base.kernels import WendlandQuintic
 from pysph.base.nnps import DomainManager
 
 # PySPH solver imports
@@ -11,8 +11,7 @@ from pysph.solver.application import Application
 from pysph.solver.solver import Solver
 
 # PySPH sph imports
-from pysph.sph.equation import Equation, Group
-from pysph.sph.integrator import Integrator, IntegratorStep
+from pysph.sph.equation import Equation, Group, MultiStageEquations
 
 # Numpy import
 import numpy as np
@@ -25,14 +24,14 @@ sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-H
 
 # Import Delta_Plus - SPH Equations
 from SLP.dpsph.governing_equations import (
-    EOS_DPSPH, ContinuityEquation_RDGC_DPSPH, MomentumEquation_DPSPH,
-    ContinuityEquation_DPSPH
+    EOS_DPSPH, ContinuityEquation_RDGC_DPSPH, MomentumEquation_DPSPH
 )
 from SLP.dpsph.equations import (
     RenormalizationTensor2D_DPSPH, RDGC_DPSPH, AverageSpacing, 
     ParticleShiftingTechnique
 )
 from SLP.dpsph.utils import get_particle_array_dpsph
+from SLP.dpsph.integrator import EulerIntegrator_DPSPH, EulerStep_DPSPH
 
 ################################################################################
 # CODE
@@ -48,41 +47,6 @@ def exact_solution(U, b, t, x, y):
 
     return factor * u, factor * v, factor * factor * p
 
-
-# Integrator - Code
-class EulerIntegrator_DPSPH(Integrator):
-    def one_timestep(self, t, dt):
-        self.compute_accelerations()
-        self.stage1()
-        self.update_domain()
-        self.do_post_stage(dt, 1)
-
-        self.stage2()
-        self.update_domain()
-        self.do_post_stage(dt, 2)
-
-
-class EulerStep_DPSPH(IntegratorStep):
-    """Fast but inaccurate integrator. Use this for testing"""
-    def stage1(self, d_idx, d_u, d_v, d_w, d_au, d_av, d_aw, d_x, d_y,
-                  d_z, d_rho, d_arho, dt):
-        d_u[d_idx] += dt*d_au[d_idx]
-        d_v[d_idx] += dt*d_av[d_idx]
-        d_w[d_idx] += dt*d_aw[d_idx]
-
-        d_x[d_idx] += dt*d_u[d_idx]
-        d_y[d_idx] += dt*d_v[d_idx]
-        d_z[d_idx] += dt*d_w[d_idx]
-
-        d_rho[d_idx] += dt*d_arho[d_idx]
-
-    def stage2(self, d_idx, d_d_x, d_d_y, d_x, d_y, d_z):
-        """
-        Correction -  ParticleShiftingTechnique
-        """
-        d_x[d_idx] += d_d_x[d_idx]
-        d_y[d_idx] += d_d_y[d_idx]
-
 ################################################################################
 # Tayloy Green Vortex - Application
 ################################################################################
@@ -93,7 +57,7 @@ class Taylor_Green(Application):
         '''
 
         # Simulation Parameters
-        self.nx = 25
+        self.nx = 50
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
@@ -159,10 +123,9 @@ class Taylor_Green(Application):
         '''
         Define solver
         '''
-
-        kernel = QuinticSpline(dim=2)
+        kernel = WendlandQuintic(dim=2)
         
-        integrator = EulerIntegrator(fluid = EulerStep())
+        integrator = EulerIntegrator_DPSPH(fluid = EulerStep_DPSPH())
 
         solver = Solver(
             kernel=kernel, dim=2, integrator=integrator, dt=self.dt, tf=self.tf, 
@@ -175,46 +138,48 @@ class Taylor_Green(Application):
         '''
         Set-up governing equations
         '''
-        equations = [
+        stage1 = [
             Group(
                 equations=[
                     EOS_DPSPH(
                         dest='fluid', sources=['fluid'],rho0=self.rho0,
                         c0= self.c0
-                    )
+                    ),
                 ], real=False       
             ),
     
             Group(
-                equations=[
+                equations=[      
                     RenormalizationTensor2D_DPSPH(
                         dest='fluid', sources=['fluid'], dim=2
                     ),
-
                     RDGC_DPSPH(
                         dest='fluid', sources=['fluid'], dim=2
                     ),
-
-                    AverageSpacing(
-                        dest='fluid', sources=['fluid'], dim=2
-                    ),
-
                     ContinuityEquation_RDGC_DPSPH(
                         dest='fluid', sources=['fluid'], delta=0.1, c0=self.c0, 
                         H=self.h0, dim=2
                     ),
-
                     MomentumEquation_DPSPH(
                         dest='fluid', sources=['fluid'], dim=2, mu=self.mu
                     ), 
-                    ParticleShiftingTechnique(
-                        dest='fluid', sources=['fluid'], 
-                    )
                 ], real=True
             )
         ]
 
-        return equations
+        stage2 = [
+            Group(
+                equations=[
+                    AverageSpacing(
+                        dest='fluid', sources=['fluid'], dim=2
+                    ),
+                    ParticleShiftingTechnique(
+                        dest='fluid', sources=['fluid'], H=self.h0, dim=2
+                    )
+                ], real=True
+            )
+        ]
+        return MultiStageEquations([stage1, stage2])
 
     ###### Post processing
     def _get_post_process_props(self, array):

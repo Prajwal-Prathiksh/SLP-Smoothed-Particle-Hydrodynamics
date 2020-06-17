@@ -96,8 +96,11 @@ class RenormalizationTensor2D_DPSPH(Equation):
         d_L10[d_idx] += a10*Vj
         d_L11[d_idx] += a11*Vj
 
-    def post_loop(self, d_idx, d_L00, d_L01, d_L10, d_L11, d_lmda, EPS):
+    def post_loop(
+        self, d_idx, d_L00, d_L01, d_L10, d_L11, d_lmda, EPS
+    ):
 
+        # Store Tensor values
         L00 = d_L00[d_idx]
         L01 = d_L01[d_idx]
         L10 = d_L10[d_idx]
@@ -120,7 +123,6 @@ class RenormalizationTensor2D_DPSPH(Equation):
             lmda2 = (quad_b - tmp)/2.0
 
             # Store lambda with the smaller eigenvalue
-            d_lmda[d_idx] = 1.0
             if lmda1 <= lmda2:
                 d_lmda[d_idx] = lmda1
             else:
@@ -165,8 +167,9 @@ class AverageSpacing(Equation):
     def initialize(self, d_idx, d_delta_p):
         d_delta_p[d_idx] = 0.0
 
-    def loop_all(self, d_idx, d_delta_p, d_x, d_y, d_z, s_x, s_y, s_z, NBRS, N_NBRS):
-        
+    def loop_all(
+        self, d_idx, d_delta_p, d_x, d_y, d_z, s_x, s_y, s_z, NBRS, N_NBRS
+    ):
         i = declare('int')
         s_idx = declare('long')
         xij = declare('matrix(3)')
@@ -181,8 +184,8 @@ class AverageSpacing(Equation):
             rij = sqrt(xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2])
             
             sum += rij
-        
-        d_delta_p[d_idx] += sum/N_NBRS            
+    
+        d_delta_p[d_idx] += sum/N_NBRS
 
 class RDGC_DPSPH(Equation):
     r"""*The renormalized density gradient correction (RDGC) term  defined by 
@@ -297,39 +300,17 @@ class ParticleShiftingTechnique(Equation):
         
         Parameters:
         -----------
-        c0 : float
-            Maximum speed of sound expected in the system (:math:`c0`)
-
         H : float
             Kernel smoothing length (:math:`h`)
-            
-        dt : float
-            Time step of integrator
 
         dim : integer
             Number of dimensions
-            
-        R_coeff : float
-            Artificial pressure coefficient
 
-        n_exp : float
-            Artificial pressure exponent
-    """
-    def __init__(self, dest, sources, c0, H, dt, dim, R_coeff=0.2, n_exp=4.0):
-        r'''
-        Parameters:
-        -----------
-        c0 : float
-            Maximum speed of sound expected in the system (:math:`c0`)
+        cfl : float, default = 0.75
+            CFL value
 
-        H : float
-            Kernel smoothing length (:math:`h`)
-            
-        dt : float
-            Time step of integrator
-
-        dim : integer
-            Number of dimensions
+        Uc0 : float. default = 15.0
+            :math:`\frac{U}{c_o}` value of the system
 
         R_coeff : float, default = 0.2
             Artificial pressure coefficient
@@ -337,48 +318,86 @@ class ParticleShiftingTechnique(Equation):
         n_exp : float, default = 4
             Artificial pressure exponent
 
+        Rh : float, default = 0.075
+            Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during Particle
+            shifting 
+            (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
+    """
+    def __init__(
+        self, dest, sources, H, dim, cfl=0.75, Uc0=15.0, R_coeff=0.2, n_exp=4.0,
+        Rh=0.075
+    ):
+        r'''
+            Parameters:
+            -----------
+            H : float
+                Kernel smoothing length (:math:`h`)
+
+            dim : integer
+                Number of dimensions
+
+            cfl : float, default = 0.75
+                CFL value
+
+            Uc0 : float. default = 15.0
+                :math:`\frac{U}{c_o}` value of the system
+
+            R_coeff : float, default = 0.2
+                Artificial pressure coefficient
+
+            n_exp : float, default = 4
+                Artificial pressure exponent
+
+            Rh : float, default = 0.075
+                Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during Particle
+                shifting 
+                (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
         '''       
         if dim != 2:
-            raise ValueError("RDGC_DPSPH - Dimension must be 2!")
+            raise ValueError("ParticleShiftingTechnique - Dimension must be 2!")
         else:
             self.dim = dim
 
         self.R_coeff = R_coeff
         self.n_exp = n_exp
-        self.c0 = c0
         self.H = H
-        self.dt = dt
+        self.cfl = cfl
+        self.Uc0 = Uc0
+        self.Rh = Rh
 
-        self.CONST = -1.0*dt*c0*4*H*H
+        self.CONST = (-self.cfl/self.Uc0)*4.0*H*H
 
         super(ParticleShiftingTechnique, self).__init__(dest, sources)
 
-    def initialize(self, d_idx, d_d_x, d_d_y):
-        d_d_x[d_idx] = 0.0
-        d_d_y[d_idx] = 0.0
+    def initialize(self, d_idx, d_DX, d_DY, d_DRh):
+        d_DX[d_idx] = 0.0
+        d_DY[d_idx] = 0.0
+        d_DRh[d_idx] = 0.0
 
     def loop_all(
-        self, d_idx, d_x, d_y, d_z, s_x, s_y, s_z, d_rho, s_rho, s_m, s_delta_p, 
-        d_d_x, d_d_y, d_lmda, SPH_KERNEL, NBRS, N_NBRS, d_h, s_h
+        self, d_idx, d_x, d_y, d_z, s_x, s_y, s_z, d_rho, s_rho, s_m, d_delta_p, 
+        d_DX, d_DY, d_DRh, d_lmda, SPH_KERNEL, NBRS, N_NBRS
     ):
-        if d_lmda[d_idx] <= 0.75:
+        i = declare('int')
+        s_idx = declare('long')
+        xij = declare('matrix(3)')
+        dwij = declare('matrix(3)')
+        rij = 0.0
+        sum1 = 0.0
+        sum2 = 0.0
+        fac = 0.0
+        rhoi = d_rho[d_idx]
 
-            d_d_x[d_idx] = 0.0
-            d_d_y[d_idx] = 0.0
+        if d_lmda[d_idx] > 0.75:
+            ##################
+            # Case - 1 
+            ##################
 
-        else:
+            # Calculate W(\delta p) value
+            delta_p = d_delta_p[d_idx]
+            w_delta_p = SPH_KERNEL.kernel(xij, delta_p, self.H)
 
-            i = declare('int')
-            s_idx = declare('long')
-            xij = declare('matrix(3)')
-            DWIJ = declare('matrix(3)')
-            rij = 0.0
-            sum1 = 0.0
-            sum2 = 0.0
-            fac = 0.0
-
-            rhoi = d_rho[d_idx]
-
+            ## Calculate \delta r_i
             for i in range(N_NBRS):
                 s_idx = NBRS[i]
 
@@ -389,21 +408,39 @@ class ParticleShiftingTechnique(Equation):
                 xij[1] = d_y[d_idx] - s_y[s_idx]
                 xij[2] = d_z[d_idx] - s_z[s_idx]
                 rij = sqrt(xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2])
-                hij = 0.5*(s_h[s_idx] +d_h[d_idx])
 
                 # Calculate Kernel values
-                WIJ = SPH_KERNEL.kernel(xij, rij, hij)
-                SPH_KERNEL.gradient(xij, rij, hij, DWIJ)
+                wij = SPH_KERNEL.kernel(xij, rij, self.H)
+                SPH_KERNEL.gradient(xij, rij, self.H, dwij)
 
-                # Calculate W(\delta p) value
-                delta_p = s_delta_p[s_idx]
-                W_delta_p = SPH_KERNEL.kernel(xij, delta_p, hij)
+                # Calcuate fij
+                fij = self.R_coeff * pow( (wij/w_delta_p), self.n_exp )
 
-                fac = ( 1.0 + self.R_coeff*pow(WIJ/W_delta_p, self.n_exp) )*( mj/(rhoi+rhoj) )
+                # Calcuate multipicative factor
+                fac = (1.0 + fij)*( mj/(rhoi+rhoj) )
 
-                sum1 += fac*DWIJ[0]
-                sum2 += fac*DWIJ[1]
-            
-            # Store \delta r_i value
-            d_d_x[d_idx] += sum1*self.CONST/d_h[d_idx]
-            d_d_y[d_idx] += sum2*self.CONST/d_h[d_idx]
+                sum1 += fac*dwij[0]
+                sum2 += fac*dwij[1]
+
+            x = sum1*self.CONST
+            y = sum2*self.CONST
+            rh = sqrt(x*x + y*y)/self.H
+
+            if rh > self.Rh:
+                # Check Rh condition
+                d_DX[d_idx] += 0.0
+                d_DY[d_idx] += 0.0
+                d_DRh[d_idx] += 0.0
+            else:
+                d_DX[d_idx] += x
+                d_DY[d_idx] += y
+                d_DRh[d_idx] += rh
+
+        else:
+            ##################
+            # Case - 2
+            ##################
+
+            d_DX[d_idx] += 0.0
+            d_DY[d_idx] += 0.0
+            d_DRh[d_idx] += 0.0

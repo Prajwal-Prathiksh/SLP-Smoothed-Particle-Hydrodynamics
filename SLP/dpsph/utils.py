@@ -16,7 +16,7 @@ def get_particle_array_dpsph(constants=None, **props):
 
             ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'm', 'h', 'L00', 'L01', 
             'L10', 'L11', 'lmda', 'delta_p', 'grad_rho1', 'grad_rho2', 
-            'd_x', 'd_y', 'arho', 'au', 'av', 'aw', 'gid', 'pid', 'tag']
+            'DX', 'DY', 'DRh', 'arho', 'au', 'av', 'aw', 'gid', 'pid', 'tag']
 
         Parameters:
         -----------
@@ -35,7 +35,7 @@ def get_particle_array_dpsph(constants=None, **props):
 
     dpsph_props = [
         'arho', 'L00', 'L01', 'L10', 'L11', 'lmda', 'delta_p', 'grad_rho1', 
-        'grad_rho2', 'd_x', 'd_y'
+        'grad_rho2', 'DX', 'DY', 'DRh'
     ]
 
     pa = get_particle_array(
@@ -45,7 +45,7 @@ def get_particle_array_dpsph(constants=None, **props):
     # default property arrays to save out.
     pa.set_output_arrays([
         'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'm', 'h', 'lmda', 'delta_p',
-        'd_x', 'd_y', 'pid', 'gid'
+        'DX', 'DY', 'DRh','pid', 'gid'
     ])
 
     return pa
