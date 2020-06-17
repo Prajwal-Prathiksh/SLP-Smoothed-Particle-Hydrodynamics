@@ -90,7 +90,7 @@ class Taylor_Green(Application):
         # Simulation Parameters
         self.remesh = 0
 
-        self.nx = 50
+        self.nx = 80
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
@@ -291,7 +291,7 @@ class Taylor_Green(Application):
         plt.plot(t, l1, label="error")
         plt.xlabel('t')
         plt.ylabel(r'$L_1$ error')
-        fig = os.path.join(self.output_dir, "l1_erro_dpsph_1.png")
+        fig = os.path.join(self.output_dir, "l1_error_dpsph_1.png")
         plt.savefig(fig, dpi=300)
 
 ################################################################################

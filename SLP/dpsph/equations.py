@@ -110,7 +110,7 @@ class RenormalizationTensor2D_DPSPH(Equation):
         quad_b = L00 + L11
 
         tmp1 = quad_b*quad_b - 4*Det
-        
+
         if tmp1 < 0:
             d_lmda[d_idx] = 1.0
         else:
@@ -130,113 +130,6 @@ class RenormalizationTensor2D_DPSPH(Equation):
         d_L01[d_idx] = -1.0*L01/Det 
         d_L10[d_idx] = -1.0*L10/Det 
         d_L11[d_idx] = L00/Det   
-
-class ParticleShiftingTechnique(Equation):
-    r"""*Particle-Shifting Technique employed in
-        Delta_plus SPH scheme*
-
-        ..math::
-            \mathbf{r_i}^\ast=\mathbf{r_i}+\delta\mathbf{\hat{r_i}}
-        
-        where, 
-
-        ..math::
-            \delta\mathbf{\hat{r_i}}=\begin{cases}
-                0  & ,\lambda_i\in[0,0.4) \\
-                (\mathbb{I}-\mathbf{n_i}\otimes\mathbf{n_i})\delta\mathbf{r_i} 
-                & ,\lambda_i\in[0.4, 0.75] \\
-                \delta\mathbf{r_i} & ,\lambda_i\in(0.75,1]
-            \end{cases}
-
-        ..math::
-            \delta\mathbf{r_i}=\frac{-\Delta t c_o(2h)^2}{h_i}.\sum_j\bigg[1+R
-            \bigg(\frac{W_{ij}}{W(\Delta p)}\bigg)^n\bigg]\nabla_i W_{ij}\bigg(
-            \frac{m_j}{\rho_i+\rho_j}\bigg)
-
-        ..math::
-            \mathbf{n_i}=\frac{\langle\nabla\lambda_i\rangle}{|\langle\nabla
-            \lambda_i\rangle|}
-
-        ..math::
-            \langle\nabla\lambda_i\rangle=\sum_j(\lambda_j-\lambda_i)\otimes
-            \mathbb{L}_i\nabla_i W_{ij}V_j
-
-        ..math::
-            \lambda_i=\text{min}\big(\text{eigenvalue}(\mathbb{L_i^{-1}})\big)
-
-        ..math::
-            \mathbb{L_i}=\bigg[\sum_j\mathbf{r_{ji}}\otimes\nabla_i W_{ij}V_j
-            \bigg]^{-1}
-
-
-        References:
-        -----------
-        .. [Sun2017] Sun, P. N., et al. “The δ p l u s -SPH Model: Simple
-        Procedures for a Further Improvement of the SPH Scheme.” Computer 
-        Methods in Applied Mechanics and Engineering, vol. 315, Mar. 2017, pp. 
-        25–49. DOI.org (Crossref), doi:10.1016/j.cma.2016.10.028.
-
-        .. [Marrone2011] Marrone, S., et al. “δ-SPH Model for Simulating Violent
-        Impact Flows.” Computer Methods in Applied Mechanics and Engineering, 
-        vol. 200, no. 13–16, Mar. 2011, pp. 1526–42. DOI.org (Crossref), 
-        doi:10.1016/j.cma.2010.12.016.
-
-        Parameters:
-        -----------
-        R_coeff : float
-            Artificial pressure coefficient
-
-        n_exp : float
-            Artificial pressure exponent
-
-        c0 : float
-            Maximum speed of sound expected in the system (:math:`c0`)
-
-        H : float
-            Kernel smoothing length (:math:`h`)
-            
-        dt : float
-            Time step of integrator
-    """
-    def __init__(self, dest, sources, R_coeff, n_exp, c0, H, dt):
-        r'''
-        Parameters:
-        -----------
-        R_coeff : float
-            Artificial pressure coefficient
-
-        n_exp : float
-            Artificial pressure exponent
-
-        c0 : float
-            Maximum speed of sound expected in the system (:math:`c0`)
-
-        H : float
-            Kernel smoothing length (:math:`h`)
-            
-        dt : float
-            Time step of integrator
-        '''       
-        self.R_coeff = R_coeff
-        self.n_exp = n_exp
-        self.c0 = c0
-        self.H = H
-        self.dt = dt
-
-        self.CONST = -1.0*dt*c0*4*H*H
-
-        super(ParticleShiftingTechnique, self).__init__(dest, sources)
-
-    def initialize(self, d_idx, d_del_x, d_del_y):
-        d_del_x[d_idx] = 0.0
-        d_del_y[d_idx] = 0.0
-
-    def loop(self, d_idx, s_idx, d_d_x, d_d_y, d_rho, s_rho, s_m, DWIJ, WIJ):
-
-        #######################################
-        #### Code is currently being written!!
-        #######################################
-        pass
 
 class AverageSpacing(Equation):
     r"""*Average particle spacing in the neighbourhood of the :math:`i^{th}` 
@@ -348,3 +241,121 @@ class RDGC_DPSPH(Equation):
 
         d_grad_rho1[d_idx] += rhoji*tmp1*Vj
         d_grad_rho2[d_idx] += rhoji*tmp2*Vj
+
+class ParticleShiftingTechnique(Equation):
+    r"""*Particle-Shifting Technique employed in
+        Delta_plus SPH scheme*
+
+        ..math::
+            \mathbf{r_i}^\ast=\mathbf{r_i}+\delta\mathbf{\hat{r_i}}
+        
+        where, 
+
+        ..math::
+            \delta\mathbf{\hat{r_i}}=\begin{cases}
+                0  & ,\lambda_i\in[0,0.4) \\
+                (\mathbb{I}-\mathbf{n_i}\otimes\mathbf{n_i})\delta\mathbf{r_i} 
+                & ,\lambda_i\in[0.4, 0.75] \\
+                \delta\mathbf{r_i} & ,\lambda_i\in(0.75,1]
+            \end{cases}
+
+        ..math::
+            \delta\mathbf{r_i}=\frac{-\Delta t c_o(2h)^2}{h_i}.\sum_j\bigg[1+R
+            \bigg(\frac{W_{ij}}{W(\Delta p)}\bigg)^n\bigg]\nabla_i W_{ij}\bigg(
+            \frac{m_j}{\rho_i+\rho_j}\bigg)
+
+        ..math::
+            \mathbf{n_i}=\frac{\langle\nabla\lambda_i\rangle}{|\langle\nabla
+            \lambda_i\rangle|}
+
+        ..math::
+            \langle\nabla\lambda_i\rangle=\sum_j(\lambda_j-\lambda_i)\otimes
+            \mathbb{L}_i\nabla_i W_{ij}V_j
+
+        ..math::
+            \lambda_i=\text{min}\big(\text{eigenvalue}(\mathbb{L_i^{-1}})\big)
+
+        ..math::
+            \mathbb{L_i}=\bigg[\sum_j\mathbf{r_{ji}}\otimes\nabla_i W_{ij}V_j
+            \bigg]^{-1}
+
+
+        References:
+        -----------
+        .. [Sun2017] Sun, P. N., et al. “The δ p l u s -SPH Model: Simple
+        Procedures for a Further Improvement of the SPH Scheme.” Computer 
+        Methods in Applied Mechanics and Engineering, vol. 315, Mar. 2017, pp. 
+        25–49. DOI.org (Crossref), doi:10.1016/j.cma.2016.10.028.
+
+        .. [Marrone2011] Marrone, S., et al. “δ-SPH Model for Simulating Violent
+        Impact Flows.” Computer Methods in Applied Mechanics and Engineering, 
+        vol. 200, no. 13–16, Mar. 2011, pp. 1526–42. DOI.org (Crossref), 
+        doi:10.1016/j.cma.2010.12.016.
+
+        Parameters:
+        -----------
+        R_coeff : float
+            Artificial pressure coefficient
+
+        n_exp : float
+            Artificial pressure exponent
+
+        c0 : float
+            Maximum speed of sound expected in the system (:math:`c0`)
+
+        H : float
+            Kernel smoothing length (:math:`h`)
+            
+        dt : float
+            Time step of integrator
+
+        dim : integer
+            Number of dimensions
+    """
+    def __init__(self, dest, sources, R_coeff, n_exp, c0, H, dt, dim):
+        r'''
+        Parameters:
+        -----------
+        R_coeff : float
+            Artificial pressure coefficient
+
+        n_exp : float
+            Artificial pressure exponent
+
+        c0 : float
+            Maximum speed of sound expected in the system (:math:`c0`)
+
+        H : float
+            Kernel smoothing length (:math:`h`)
+            
+        dt : float
+            Time step of integrator
+
+        dim : integer
+            Number of dimensions
+        '''       
+        if dim != 2:
+            raise ValueError("RDGC_DPSPH - Dimension must be 2!")
+        else:
+            self.dim = dim
+
+        self.R_coeff = R_coeff
+        self.n_exp = n_exp
+        self.c0 = c0
+        self.H = H
+        self.dt = dt
+
+        self.CONST = -1.0*dt*c0*4*H*H
+
+        super(ParticleShiftingTechnique, self).__init__(dest, sources)
+
+    def initialize(self, d_idx, d_del_x, d_del_y):
+        d_del_x[d_idx] = 0.0
+        d_del_y[d_idx] = 0.0
+
+    def loop(self, d_idx, s_idx, d_d_x, d_d_y, d_rho, s_rho, s_m, DWIJ, WIJ):
+
+        #######################################
+        #### Code is currently being written!!
+        #######################################
+        pass

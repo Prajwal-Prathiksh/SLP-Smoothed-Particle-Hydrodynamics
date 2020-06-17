@@ -58,7 +58,7 @@ class Taylor_Green(Application):
         '''
 
         # Simulation Parameters
-        self.nx = 80
+        self.nx = 25
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
@@ -160,6 +160,10 @@ class Taylor_Green(Application):
                         dest='fluid', sources=['fluid'], dim=2
                     ),
 
+                    AverageSpacing(
+                        dest='fluid', sources=['fluid'], dim=2
+                    ),
+
                     ContinuityEquation_RDGC_DPSPH(
                         dest='fluid', sources=['fluid'], delta=0.1, c0=self.c0, 
                         H=self.h0, dim=2
@@ -237,21 +241,21 @@ class Taylor_Green(Application):
         plt.xlabel('t')
         plt.ylabel('max velocity')
         plt.legend()
-        fig = os.path.join(self.output_dir, "decay_dpsph_2.png")
+        fig = os.path.join(self.output_dir, "decay_dpsph_3.png")
         plt.savefig(fig, dpi=300)
 
         plt.clf()
         plt.plot(t, linf)
         plt.xlabel('t')
         plt.ylabel(r'$L_\infty$ error')
-        fig = os.path.join(self.output_dir, "linf_error_dpsph_2.png")
+        fig = os.path.join(self.output_dir, "linf_error_dpsph_3.png")
         plt.savefig(fig, dpi=300)
 
         plt.clf()
         plt.plot(t, l1, label="error")
         plt.xlabel('t')
         plt.ylabel(r'$L_1$ error')
-        fig = os.path.join(self.output_dir, "l1_error_dpsph_2.png")
+        fig = os.path.join(self.output_dir, "l1_error_dpsph_3.png")
         plt.savefig(fig, dpi=300)
 
 ################################################################################
