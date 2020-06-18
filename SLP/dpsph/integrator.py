@@ -12,13 +12,13 @@ from pysph.sph.integrator import Integrator, IntegratorStep
 
 class EulerIntegrator_DPSPH(Integrator):
     def one_timestep(self, t, dt):
+        # Evaluate Stage1
         self.compute_accelerations(0)
         self.stage1()
         self.update_domain()
         self.do_post_stage(dt, 1)
 
-
-
+        # Evaluate Stage2 - PST Correction
         self.compute_accelerations(1, update_nnps=True)
         self.stage2()
         self.update_domain()
@@ -39,5 +39,8 @@ class EulerStep_DPSPH(IntegratorStep):
         d_rho[d_idx] += dt*d_arho[d_idx]
 
     def stage2(self, d_idx, d_DX, d_DY, d_x, d_y):
+        r"""
+            Particle Shifting Technique correction
+        """
         d_x[d_idx] += d_DX[d_idx]
         d_y[d_idx] += d_DY[d_idx]
