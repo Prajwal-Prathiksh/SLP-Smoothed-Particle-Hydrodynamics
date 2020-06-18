@@ -325,7 +325,7 @@ class ParticleShiftingTechnique(Equation):
     """
     def __init__(
         self, dest, sources, H, dim, cfl=0.5, Uc0=15.0, R_coeff=0.2, n_exp=4.0,
-        Rh=0.075
+        Rh=0.115
     ):
         r'''
             Parameters:
@@ -348,7 +348,7 @@ class ParticleShiftingTechnique(Equation):
             n_exp : float, default = 4
                 Artificial pressure exponent
 
-            Rh : float, default = 0.075
+            Rh : float, default = 0.115
                 Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during Particle
                 shifting 
                 (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
@@ -450,7 +450,7 @@ class ParticleShiftingTechnique(Equation):
 
                 # Sum n_i
                 sum_nx += (L00*dwij[0] + L01*dwij[1])*fac
-                sum_ny += (L01*dwij[0] + L11*dwij[1])*fac
+                sum_ny += (L10*dwij[0] + L11*dwij[1])*fac
 
             # (x,y) components of \delta r_i
             x = sum1*self.CONST

@@ -1,29 +1,29 @@
-INFO|2020-06-18 04:14:50,512|pysph.solver.application|Started as:
+INFO|2020-06-19 02:20:19,283|pysph.solver.application|Started as:
 Taylor_Green_3.py --openmp
-INFO|2020-06-18 04:14:50,513|pysph.solver.application|Running on Hope with address 127.0.1.1
-INFO|2020-06-18 04:14:50,513|pysph.solver.application|Using OpenMP
-INFO|2020-06-18 04:14:50,513|pysph.solver.application|Using OpenMP schedule dynamic,64
-INFO|2020-06-18 04:14:50,517|pysph.solver.application|Generating output in /home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Taylor_Green_3_output
-INFO|2020-06-18 04:14:50,605|compyle.ext_module|Precompiled code from: /home/prajwal/.pysph/source/py3.6-linux-x86_64/m_42a75edd1538b789f0f4718fdde9df84.pyx
-INFO|2020-06-18 04:14:50,668|compyle.ext_module|Precompiled code from: /home/prajwal/.pysph/source/py3.6-linux-x86_64/m_1068d955063aa08a7775a184d7a1dd93.pyx
-INFO|2020-06-18 04:14:50,715|pysph.solver.application|Started multiprocessing interface on 0.0.0.0:8800
-INFO|2020-06-18 04:14:50,715|pysph.solver.application|----------------------------------------------------------------------
+INFO|2020-06-19 02:20:19,284|pysph.solver.application|Running on Hope with address 127.0.1.1
+INFO|2020-06-19 02:20:19,284|pysph.solver.application|Using OpenMP
+INFO|2020-06-19 02:20:19,284|pysph.solver.application|Using OpenMP schedule dynamic,64
+INFO|2020-06-19 02:20:19,298|pysph.solver.application|Generating output in /home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Taylor Green Vortex/Taylor_Green_3_output
+INFO|2020-06-19 02:20:19,410|compyle.ext_module|Precompiled code from: /home/prajwal/.pysph/source/py3.6-linux-x86_64/m_9ba62bf04acfbfd65d2ee47033fa3cc4.pyx
+INFO|2020-06-19 02:20:19,470|compyle.ext_module|Precompiled code from: /home/prajwal/.pysph/source/py3.6-linux-x86_64/m_0fe536394b4a728fbeaea957dad49482.pyx
+INFO|2020-06-19 02:20:19,524|pysph.solver.application|Started multiprocessing interface on 0.0.0.0:8800
+INFO|2020-06-19 02:20:19,524|pysph.solver.application|----------------------------------------------------------------------
 No of particles:
   fluid: 3364
 ----------------------------------------------------------------------
-INFO|2020-06-18 04:14:50,715|pysph.solver.application|Using kernel:
+INFO|2020-06-19 02:20:19,524|pysph.solver.application|Using kernel:
 ----------------------------------------------------------------------
   WendlandQuintic(dim=2)
 ----------------------------------------------------------------------
-INFO|2020-06-18 04:14:50,715|pysph.solver.application|Using nnps:
+INFO|2020-06-19 02:20:19,524|pysph.solver.application|Using nnps:
 ----------------------------------------------------------------------
   LinkedListNNPS(dim=2)
 ----------------------------------------------------------------------
-INFO|2020-06-18 04:14:50,715|pysph.solver.application|Using integrator:
+INFO|2020-06-19 02:20:19,525|pysph.solver.application|Using integrator:
 ----------------------------------------------------------------------
   EulerIntegrator_DPSPH(fluid=EulerStep_DPSPH())
 ----------------------------------------------------------------------
-INFO|2020-06-18 04:14:50,715|pysph.solver.application|Using equations:
+INFO|2020-06-19 02:20:19,525|pysph.solver.application|Using equations:
 ----------------------------------------------------------------------
 MultiStageEquations(groups=[
   [
@@ -50,7 +50,7 @@ MultiStageEquations(groups=[
   Group(equations=[
       AverageSpacing(dest='fluid', sources=['fluid'], dim=2), 
       ParticleShiftingTechnique(dest='fluid', sources=['fluid'], H=0.02,
-      dim=2, cfl=0.5, Uc0=15.0, R_coeff=0.2, n_exp=4.0, Rh=0.075)
+      dim=2, cfl=0.5, Uc0=15.0, R_coeff=0.2, n_exp=4.0, Rh=0.115)
     ],
     real=True, update_nnps=False, iterate=False, max_iterations=1,
     min_iterations=0, pre=None, post=None)
@@ -58,83 +58,83 @@ MultiStageEquations(groups=[
   ],
 ])
 ----------------------------------------------------------------------
-INFO|2020-06-18 04:14:50,716|pysph.solver.application|Callbacks:
+INFO|2020-06-19 02:20:19,526|pysph.solver.application|Callbacks:
 ----------------------------------------------------------------------
 
-INFO|2020-06-18 04:14:50,716|pysph.solver.application|Pre-step callbacks:
+INFO|2020-06-19 02:20:19,528|pysph.solver.application|Pre-step callbacks:
 []
 
-INFO|2020-06-18 04:14:50,716|pysph.solver.application|Post-step callbacks:
+INFO|2020-06-19 02:20:19,529|pysph.solver.application|Post-step callbacks:
 []
 
-INFO|2020-06-18 04:14:50,716|pysph.solver.application|Post-stage callbacks:
+INFO|2020-06-19 02:20:19,529|pysph.solver.application|Post-stage callbacks:
 []
 ----------------------------------------------------------------------
 
-INFO|2020-06-18 04:14:50,716|pysph.solver.application|Setup took: 0.20599 secs
-INFO|2020-06-18 04:14:50,719|pysph.solver.solver|Writing output at time 0, iteration 0, dt = 0.0003125
-INFO|2020-06-18 04:14:52,814|pysph.solver.solver|Writing output at time 0.03125, iteration 100, dt = 0.0003125
-INFO|2020-06-18 04:14:55,107|pysph.solver.solver|Writing output at time 0.0625, iteration 200, dt = 0.0003125
-INFO|2020-06-18 04:14:57,453|pysph.solver.solver|Writing output at time 0.09375, iteration 300, dt = 0.0003125
-INFO|2020-06-18 04:14:58,676|pysph.solver.solver|Writing output at time 0.125, iteration 400, dt = 0.0003125
-INFO|2020-06-18 04:14:59,873|pysph.solver.solver|Writing output at time 0.15625, iteration 500, dt = 0.0003125
-INFO|2020-06-18 04:15:01,164|pysph.solver.solver|Writing output at time 0.1875, iteration 600, dt = 0.0003125
-INFO|2020-06-18 04:15:02,684|pysph.solver.solver|Writing output at time 0.21875, iteration 700, dt = 0.0003125
-INFO|2020-06-18 04:15:05,462|pysph.solver.solver|Writing output at time 0.25, iteration 800, dt = 0.0003125
-INFO|2020-06-18 04:15:07,166|pysph.solver.solver|Writing output at time 0.28125, iteration 900, dt = 0.0003125
-INFO|2020-06-18 04:15:08,720|pysph.solver.solver|Writing output at time 0.3125, iteration 1000, dt = 0.0003125
-INFO|2020-06-18 04:15:10,073|pysph.solver.solver|Writing output at time 0.34375, iteration 1100, dt = 0.0003125
-INFO|2020-06-18 04:15:11,384|pysph.solver.solver|Writing output at time 0.375, iteration 1200, dt = 0.0003125
-INFO|2020-06-18 04:15:13,338|pysph.solver.solver|Writing output at time 0.40625, iteration 1300, dt = 0.0003125
-INFO|2020-06-18 04:15:14,836|pysph.solver.solver|Writing output at time 0.4375, iteration 1400, dt = 0.0003125
-INFO|2020-06-18 04:15:16,047|pysph.solver.solver|Writing output at time 0.46875, iteration 1500, dt = 0.0003125
-INFO|2020-06-18 04:15:17,273|pysph.solver.solver|Writing output at time 0.5, iteration 1600, dt = 0.0003125
-INFO|2020-06-18 04:15:18,609|pysph.solver.solver|Writing output at time 0.53125, iteration 1700, dt = 0.0003125
-INFO|2020-06-18 04:15:19,998|pysph.solver.solver|Writing output at time 0.5625, iteration 1800, dt = 0.0003125
-INFO|2020-06-18 04:15:21,503|pysph.solver.solver|Writing output at time 0.59375, iteration 1900, dt = 0.0003125
-INFO|2020-06-18 04:15:22,920|pysph.solver.solver|Writing output at time 0.625, iteration 2000, dt = 0.0003125
-INFO|2020-06-18 04:15:25,045|pysph.solver.solver|Writing output at time 0.65625, iteration 2100, dt = 0.0003125
-INFO|2020-06-18 04:15:26,323|pysph.solver.solver|Writing output at time 0.6875, iteration 2200, dt = 0.0003125
-INFO|2020-06-18 04:15:27,730|pysph.solver.solver|Writing output at time 0.71875, iteration 2300, dt = 0.0003125
-INFO|2020-06-18 04:15:29,245|pysph.solver.solver|Writing output at time 0.75, iteration 2400, dt = 0.0003125
-INFO|2020-06-18 04:15:30,562|pysph.solver.solver|Writing output at time 0.78125, iteration 2500, dt = 0.0003125
-INFO|2020-06-18 04:15:32,230|pysph.solver.solver|Writing output at time 0.8125, iteration 2600, dt = 0.0003125
-INFO|2020-06-18 04:15:34,128|pysph.solver.solver|Writing output at time 0.84375, iteration 2700, dt = 0.0003125
-INFO|2020-06-18 04:15:35,664|pysph.solver.solver|Writing output at time 0.875, iteration 2800, dt = 0.0003125
-INFO|2020-06-18 04:15:37,027|pysph.solver.solver|Writing output at time 0.90625, iteration 2900, dt = 0.0003125
-INFO|2020-06-18 04:15:46,810|pysph.solver.solver|Writing output at time 0.9375, iteration 3000, dt = 0.0003125
-INFO|2020-06-18 04:15:49,165|pysph.solver.solver|Writing output at time 0.96875, iteration 3100, dt = 0.0003125
-INFO|2020-06-18 04:15:51,685|pysph.solver.solver|Writing output at time 1, iteration 3200, dt = 0.0003125
-INFO|2020-06-18 04:15:54,072|pysph.solver.solver|Writing output at time 1.03125, iteration 3300, dt = 0.0003125
-INFO|2020-06-18 04:15:56,554|pysph.solver.solver|Writing output at time 1.0625, iteration 3400, dt = 0.0003125
-INFO|2020-06-18 04:15:59,400|pysph.solver.solver|Writing output at time 1.09375, iteration 3500, dt = 0.0003125
-INFO|2020-06-18 04:16:01,939|pysph.solver.solver|Writing output at time 1.125, iteration 3600, dt = 0.0003125
-INFO|2020-06-18 04:16:03,263|pysph.solver.solver|Writing output at time 1.15625, iteration 3700, dt = 0.0003125
-INFO|2020-06-18 04:16:04,530|pysph.solver.solver|Writing output at time 1.1875, iteration 3800, dt = 0.0003125
-INFO|2020-06-18 04:16:06,072|pysph.solver.solver|Writing output at time 1.21875, iteration 3900, dt = 0.0003125
-INFO|2020-06-18 04:16:07,353|pysph.solver.solver|Writing output at time 1.25, iteration 4000, dt = 0.0003125
-INFO|2020-06-18 04:16:08,592|pysph.solver.solver|Writing output at time 1.28125, iteration 4100, dt = 0.0003125
-INFO|2020-06-18 04:16:10,941|pysph.solver.solver|Writing output at time 1.3125, iteration 4200, dt = 0.0003125
-INFO|2020-06-18 04:16:12,362|pysph.solver.solver|Writing output at time 1.34375, iteration 4300, dt = 0.0003125
-INFO|2020-06-18 04:16:15,121|pysph.solver.solver|Writing output at time 1.375, iteration 4400, dt = 0.0003125
-INFO|2020-06-18 04:16:16,406|pysph.solver.solver|Writing output at time 1.40625, iteration 4500, dt = 0.0003125
-INFO|2020-06-18 04:16:17,657|pysph.solver.solver|Writing output at time 1.4375, iteration 4600, dt = 0.0003125
-INFO|2020-06-18 04:16:19,039|pysph.solver.solver|Writing output at time 1.46875, iteration 4700, dt = 0.0003125
-INFO|2020-06-18 04:16:20,756|pysph.solver.solver|Writing output at time 1.5, iteration 4800, dt = 0.0003125
-INFO|2020-06-18 04:16:22,456|pysph.solver.solver|Writing output at time 1.53125, iteration 4900, dt = 0.0003125
-INFO|2020-06-18 04:16:23,715|pysph.solver.solver|Writing output at time 1.5625, iteration 5000, dt = 0.0003125
-INFO|2020-06-18 04:16:25,083|pysph.solver.solver|Writing output at time 1.59375, iteration 5100, dt = 0.0003125
-INFO|2020-06-18 04:16:26,396|pysph.solver.solver|Writing output at time 1.625, iteration 5200, dt = 0.0003125
-INFO|2020-06-18 04:16:28,743|pysph.solver.solver|Writing output at time 1.65625, iteration 5300, dt = 0.0003125
-INFO|2020-06-18 04:16:30,223|pysph.solver.solver|Writing output at time 1.6875, iteration 5400, dt = 0.0003125
-INFO|2020-06-18 04:16:31,652|pysph.solver.solver|Writing output at time 1.71875, iteration 5500, dt = 0.0003125
-INFO|2020-06-18 04:16:33,191|pysph.solver.solver|Writing output at time 1.75, iteration 5600, dt = 0.0003125
-INFO|2020-06-18 04:16:34,667|pysph.solver.solver|Writing output at time 1.78125, iteration 5700, dt = 0.0003125
-INFO|2020-06-18 04:16:36,206|pysph.solver.solver|Writing output at time 1.8125, iteration 5800, dt = 0.0003125
-INFO|2020-06-18 04:16:37,607|pysph.solver.solver|Writing output at time 1.84375, iteration 5900, dt = 0.0003125
-INFO|2020-06-18 04:16:39,216|pysph.solver.solver|Writing output at time 1.875, iteration 6000, dt = 0.0003125
-INFO|2020-06-18 04:16:41,173|pysph.solver.solver|Writing output at time 1.90625, iteration 6100, dt = 0.0003125
-INFO|2020-06-18 04:16:42,524|pysph.solver.solver|Writing output at time 1.9375, iteration 6200, dt = 0.0003125
-INFO|2020-06-18 04:16:44,567|pysph.solver.solver|Writing output at time 1.96875, iteration 6300, dt = 0.0003125
-INFO|2020-06-18 04:16:46,585|pysph.solver.solver|Writing output at time 2, iteration 6400, dt = 0.0003125
-INFO|2020-06-18 04:16:46,600|pysph.solver.application|Run took: 115.88120 secs
+INFO|2020-06-19 02:20:19,529|pysph.solver.application|Setup took: 0.24815 secs
+INFO|2020-06-19 02:20:19,530|pysph.solver.solver|Writing output at time 0, iteration 0, dt = 0.0003125
+INFO|2020-06-19 02:20:21,110|pysph.solver.solver|Writing output at time 0.03125, iteration 100, dt = 0.0003125
+INFO|2020-06-19 02:20:22,546|pysph.solver.solver|Writing output at time 0.0625, iteration 200, dt = 0.0003125
+INFO|2020-06-19 02:20:24,000|pysph.solver.solver|Writing output at time 0.09375, iteration 300, dt = 0.0003125
+INFO|2020-06-19 02:20:25,540|pysph.solver.solver|Writing output at time 0.125, iteration 400, dt = 0.0003125
+INFO|2020-06-19 02:20:27,004|pysph.solver.solver|Writing output at time 0.15625, iteration 500, dt = 0.0003125
+INFO|2020-06-19 02:20:28,434|pysph.solver.solver|Writing output at time 0.1875, iteration 600, dt = 0.0003125
+INFO|2020-06-19 02:20:29,884|pysph.solver.solver|Writing output at time 0.21875, iteration 700, dt = 0.0003125
+INFO|2020-06-19 02:20:31,277|pysph.solver.solver|Writing output at time 0.25, iteration 800, dt = 0.0003125
+INFO|2020-06-19 02:20:33,128|pysph.solver.solver|Writing output at time 0.28125, iteration 900, dt = 0.0003125
+INFO|2020-06-19 02:20:34,582|pysph.solver.solver|Writing output at time 0.3125, iteration 1000, dt = 0.0003125
+INFO|2020-06-19 02:20:36,005|pysph.solver.solver|Writing output at time 0.34375, iteration 1100, dt = 0.0003125
+INFO|2020-06-19 02:20:37,420|pysph.solver.solver|Writing output at time 0.375, iteration 1200, dt = 0.0003125
+INFO|2020-06-19 02:20:38,839|pysph.solver.solver|Writing output at time 0.40625, iteration 1300, dt = 0.0003125
+INFO|2020-06-19 02:20:40,280|pysph.solver.solver|Writing output at time 0.4375, iteration 1400, dt = 0.0003125
+INFO|2020-06-19 02:20:42,364|pysph.solver.solver|Writing output at time 0.46875, iteration 1500, dt = 0.0003125
+INFO|2020-06-19 02:20:44,240|pysph.solver.solver|Writing output at time 0.5, iteration 1600, dt = 0.0003125
+INFO|2020-06-19 02:20:46,260|pysph.solver.solver|Writing output at time 0.53125, iteration 1700, dt = 0.0003125
+INFO|2020-06-19 02:20:48,135|pysph.solver.solver|Writing output at time 0.5625, iteration 1800, dt = 0.0003125
+INFO|2020-06-19 02:20:49,750|pysph.solver.solver|Writing output at time 0.59375, iteration 1900, dt = 0.0003125
+INFO|2020-06-19 02:20:51,597|pysph.solver.solver|Writing output at time 0.625, iteration 2000, dt = 0.0003125
+INFO|2020-06-19 02:20:54,038|pysph.solver.solver|Writing output at time 0.65625, iteration 2100, dt = 0.0003125
+INFO|2020-06-19 02:20:56,549|pysph.solver.solver|Writing output at time 0.6875, iteration 2200, dt = 0.0003125
+INFO|2020-06-19 02:20:59,422|pysph.solver.solver|Writing output at time 0.71875, iteration 2300, dt = 0.0003125
+INFO|2020-06-19 02:21:01,144|pysph.solver.solver|Writing output at time 0.75, iteration 2400, dt = 0.0003125
+INFO|2020-06-19 02:21:03,073|pysph.solver.solver|Writing output at time 0.78125, iteration 2500, dt = 0.0003125
+INFO|2020-06-19 02:21:05,476|pysph.solver.solver|Writing output at time 0.8125, iteration 2600, dt = 0.0003125
+INFO|2020-06-19 02:21:07,201|pysph.solver.solver|Writing output at time 0.84375, iteration 2700, dt = 0.0003125
+INFO|2020-06-19 02:21:09,438|pysph.solver.solver|Writing output at time 0.875, iteration 2800, dt = 0.0003125
+INFO|2020-06-19 02:21:11,595|pysph.solver.solver|Writing output at time 0.90625, iteration 2900, dt = 0.0003125
+INFO|2020-06-19 02:21:13,464|pysph.solver.solver|Writing output at time 0.9375, iteration 3000, dt = 0.0003125
+INFO|2020-06-19 02:21:15,215|pysph.solver.solver|Writing output at time 0.96875, iteration 3100, dt = 0.0003125
+INFO|2020-06-19 02:21:17,515|pysph.solver.solver|Writing output at time 1, iteration 3200, dt = 0.0003125
+INFO|2020-06-19 02:21:19,314|pysph.solver.solver|Writing output at time 1.03125, iteration 3300, dt = 0.0003125
+INFO|2020-06-19 02:21:21,286|pysph.solver.solver|Writing output at time 1.0625, iteration 3400, dt = 0.0003125
+INFO|2020-06-19 02:21:23,280|pysph.solver.solver|Writing output at time 1.09375, iteration 3500, dt = 0.0003125
+INFO|2020-06-19 02:21:25,051|pysph.solver.solver|Writing output at time 1.125, iteration 3600, dt = 0.0003125
+INFO|2020-06-19 02:21:26,736|pysph.solver.solver|Writing output at time 1.15625, iteration 3700, dt = 0.0003125
+INFO|2020-06-19 02:21:28,609|pysph.solver.solver|Writing output at time 1.1875, iteration 3800, dt = 0.0003125
+INFO|2020-06-19 02:21:30,467|pysph.solver.solver|Writing output at time 1.21875, iteration 3900, dt = 0.0003125
+INFO|2020-06-19 02:21:32,499|pysph.solver.solver|Writing output at time 1.25, iteration 4000, dt = 0.0003125
+INFO|2020-06-19 02:21:34,124|pysph.solver.solver|Writing output at time 1.28125, iteration 4100, dt = 0.0003125
+INFO|2020-06-19 02:21:35,618|pysph.solver.solver|Writing output at time 1.3125, iteration 4200, dt = 0.0003125
+INFO|2020-06-19 02:21:37,316|pysph.solver.solver|Writing output at time 1.34375, iteration 4300, dt = 0.0003125
+INFO|2020-06-19 02:21:38,919|pysph.solver.solver|Writing output at time 1.375, iteration 4400, dt = 0.0003125
+INFO|2020-06-19 02:21:40,472|pysph.solver.solver|Writing output at time 1.40625, iteration 4500, dt = 0.0003125
+INFO|2020-06-19 02:21:41,953|pysph.solver.solver|Writing output at time 1.4375, iteration 4600, dt = 0.0003125
+INFO|2020-06-19 02:21:43,588|pysph.solver.solver|Writing output at time 1.46875, iteration 4700, dt = 0.0003125
+INFO|2020-06-19 02:21:45,196|pysph.solver.solver|Writing output at time 1.5, iteration 4800, dt = 0.0003125
+INFO|2020-06-19 02:21:46,855|pysph.solver.solver|Writing output at time 1.53125, iteration 4900, dt = 0.0003125
+INFO|2020-06-19 02:21:48,827|pysph.solver.solver|Writing output at time 1.5625, iteration 5000, dt = 0.0003125
+INFO|2020-06-19 02:21:50,813|pysph.solver.solver|Writing output at time 1.59375, iteration 5100, dt = 0.0003125
+INFO|2020-06-19 02:21:52,611|pysph.solver.solver|Writing output at time 1.625, iteration 5200, dt = 0.0003125
+INFO|2020-06-19 02:21:54,310|pysph.solver.solver|Writing output at time 1.65625, iteration 5300, dt = 0.0003125
+INFO|2020-06-19 02:21:55,949|pysph.solver.solver|Writing output at time 1.6875, iteration 5400, dt = 0.0003125
+INFO|2020-06-19 02:21:57,510|pysph.solver.solver|Writing output at time 1.71875, iteration 5500, dt = 0.0003125
+INFO|2020-06-19 02:21:59,021|pysph.solver.solver|Writing output at time 1.75, iteration 5600, dt = 0.0003125
+INFO|2020-06-19 02:22:00,541|pysph.solver.solver|Writing output at time 1.78125, iteration 5700, dt = 0.0003125
+INFO|2020-06-19 02:22:02,068|pysph.solver.solver|Writing output at time 1.8125, iteration 5800, dt = 0.0003125
+INFO|2020-06-19 02:22:03,580|pysph.solver.solver|Writing output at time 1.84375, iteration 5900, dt = 0.0003125
+INFO|2020-06-19 02:22:05,041|pysph.solver.solver|Writing output at time 1.875, iteration 6000, dt = 0.0003125
+INFO|2020-06-19 02:22:06,575|pysph.solver.solver|Writing output at time 1.90625, iteration 6100, dt = 0.0003125
+INFO|2020-06-19 02:22:08,134|pysph.solver.solver|Writing output at time 1.9375, iteration 6200, dt = 0.0003125
+INFO|2020-06-19 02:22:09,842|pysph.solver.solver|Writing output at time 1.96875, iteration 6300, dt = 0.0003125
+INFO|2020-06-19 02:22:11,527|pysph.solver.solver|Writing output at time 2, iteration 6400, dt = 0.0003125
+INFO|2020-06-19 02:22:11,545|pysph.solver.application|Run took: 112.01564 secs
