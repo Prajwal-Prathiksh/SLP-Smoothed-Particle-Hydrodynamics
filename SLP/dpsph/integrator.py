@@ -3,7 +3,6 @@
 ###########################################################################
 
 # PySPH sph imports
-from pysph.sph.equation import Equation, Group, MultiStageEquations
 from pysph.sph.integrator import Integrator, IntegratorStep
 
 ################################################################################

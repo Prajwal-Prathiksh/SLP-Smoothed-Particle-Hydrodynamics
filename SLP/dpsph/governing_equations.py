@@ -3,7 +3,7 @@
 ###########################################################################
 
 # PyPSH Equations Import
-from pysph.sph.equation import Equation, Group
+from pysph.sph.equation import Equation
 
 ################################################################################
 # Delta_Plus - SPH Sceheme: Governing equations
@@ -208,23 +208,23 @@ class MomentumEquation_DPSPH(Equation):
     """
     def __init__(self, dest, sources, dim, mu, fx=0.0, fy=0.0, fz=0.0):
         r"""
-        Parameters:
-        -----------
-        dim : integer
-            Number of dimensions
+            Parameters:
+            -----------
+            dim : integer
+                Number of dimensions
 
-        mu : float
-            Dynamic viscosity of the fluid (:math:`\mu = \rho_o \nu`)
+            mu : float
+                Dynamic viscosity of the fluid (:math:`\mu = \rho_o \nu`)
 
-        fx : float, Default = 0.0
-            Body-force in x-axis
+            fx : float, Default = 0.0
+                Body-force in x-axis
 
-        fy : float, Default = 0.0
-            Body-force in y-axis
+            fy : float, Default = 0.0
+                Body-force in y-axis
 
-        fz : float, Default = 0.0
-            Body-force in z-axis
-        """
+            fz : float, Default = 0.0
+                Body-force in z-axis
+            """
         self.dim = dim
         self.mu = mu
         self.fx = fx

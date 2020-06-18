@@ -3,7 +3,7 @@
 ###########################################################################
 
 # PyPSH Equations Import
-from pysph.sph.equation import Equation, Group
+from pysph.sph.equation import Equation
 
 # Miscellaneous Import
 from textwrap import dedent
