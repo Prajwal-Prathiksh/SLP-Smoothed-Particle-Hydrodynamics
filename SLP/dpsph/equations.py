@@ -306,7 +306,7 @@ class ParticleShiftingTechnique(Equation):
         dim : integer
             Number of dimensions
 
-        cfl : float, default = 0.75
+        cfl : float, default = 0.5
             CFL value
 
         Uc0 : float. default = 15.0
@@ -325,7 +325,7 @@ class ParticleShiftingTechnique(Equation):
     """
     def __init__(
         self, dest, sources, H, dim, cfl=0.5, Uc0=15.0, R_coeff=0.2, n_exp=4.0,
-        Rh=0.115
+        Rh=0.075
     ):
         r'''
             Parameters:
