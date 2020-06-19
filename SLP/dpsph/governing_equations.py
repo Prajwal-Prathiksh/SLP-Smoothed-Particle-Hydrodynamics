@@ -261,7 +261,6 @@ class MomentumEquation_DPSPH(Equation):
             Fij = Pj - Pi
         else:
             Fij = (Pi + Pj)
-        Fij = (Pi+Pj)
 
         # pi_ij
         pi_ij  = vjidotxji / (R2IJ + EPS)
