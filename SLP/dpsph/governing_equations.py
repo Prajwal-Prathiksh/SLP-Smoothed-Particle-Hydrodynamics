@@ -258,14 +258,15 @@ class MomentumEquation_DPSPH(Equation):
         
         # F_ij
         if Pi < 0.0:
-            Fij = Pi - Pj
+            Fij = Pj - Pi
         else:
-            Fij = (Pi + Pj) * -1.0
+            Fij = (Pi + Pj)
+        Fij = (Pi+Pj)
 
         # pi_ij
         pi_ij  = vjidotxji / (R2IJ + EPS)
 
-        tmp = (Fij + self.CONST * pi_ij) * Vj 
+        tmp = (-1.0*Fij + self.CONST * pi_ij) * Vj 
 
         # Accelerations
         d_au[d_idx] += tmp*DWIJ[0]
