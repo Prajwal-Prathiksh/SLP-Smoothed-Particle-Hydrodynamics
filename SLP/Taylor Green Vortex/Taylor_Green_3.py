@@ -58,6 +58,7 @@ class Taylor_Green(Application):
 
         # Simulation Parameters
         self.nx = 50
+        self.perturb = 0.2 # Perturbation factor
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
@@ -98,6 +99,12 @@ class Taylor_Green(Application):
 
         # Fluid
         x0, y0 = np.meshgrid(_x, _x)
+
+        if self.perturb > 0:
+            np.random.seed(1)
+            factor = dx * self.perturb
+            x0 += np.random.random(x0.shape) * factor
+            y0 += np.random.random(x0.shape) * factor
         
         b = -8.0-pi*pi/self.re
 
