@@ -1,1 +1,0 @@
-{"fname": "taylor_green", "output_dir": "/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Taylor Green Vortex/Output/nx_30/perturb_0/taylor_green_output", "args": ["--openmp", "--nx", "30", "--perturb", "0", "--pfreq", "20", "--scheme", "wcsph"], "completed": true, "cpu_time": 35.249255895614624}
