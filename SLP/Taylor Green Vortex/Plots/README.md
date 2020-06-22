@@ -2,6 +2,8 @@
 
 The error plots of the Taylor Green vortex simulation, as well the corresponding log files.
 
+The log files, and error plots stored are as follows:
+
 ### 1. nx_30/ 
 
     * PySPH taylor_green example
