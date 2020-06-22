@@ -10,3 +10,7 @@ Assignments/
 __pycache__/
 
 *_output/
+edac/
+wcsph/
+tvf/
+dpsph_/
