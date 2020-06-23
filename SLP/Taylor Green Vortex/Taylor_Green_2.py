@@ -61,7 +61,7 @@ class Taylor_Green(Application):
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
-        self.rho0 = 1000.0
+        self.rho0 = 1
 
         self.c0 = 15.0
         self.hdx = 1.0

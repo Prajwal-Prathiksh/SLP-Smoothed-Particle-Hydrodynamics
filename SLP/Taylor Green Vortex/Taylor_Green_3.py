@@ -12,11 +12,12 @@ from pysph.solver.solver import Solver
 
 # PySPH sph imports
 from pysph.sph.equation import Equation, Group, MultiStageEquations
+from pysph.sph.wc.edac import ComputeAveragePressure
 
 # Numpy import
+from numpy import cos, sin, exp, pi
 import numpy as np
 import os
-pi = np.pi
 
 # Include path
 import sys
@@ -39,11 +40,11 @@ from SLP.dpsph.integrator import EulerIntegrator_DPSPH, EulerStep_DPSPH
 
 # Exact Solution - Taylor Green Vortex
 def exact_solution(U, b, t, x, y):
-    factor = U * np.exp(b*t)
+    factor = U * exp(b*t)
 
-    u = -np.cos(2*pi*x) * np.sin(2*pi*y)
-    v = np.sin(2*pi*x) * np.cos(2*pi*y)
-    p = -0.25 * (np.cos(4*pi*x) + np.cos(4*pi*y))
+    u = -cos(2*pi*x) * sin(2*pi*y)
+    v = sin(2*pi*x) * cos(2*pi*y)
+    p = -0.25 * (cos(4*pi*x) + cos(4*pi*y))
 
     return factor * u, factor * v, factor * factor * p
 
@@ -58,11 +59,11 @@ class Taylor_Green(Application):
 
         # Simulation Parameters
         self.nx = 50
-        self.perturb = 0 # Perturbation factor
+        self.perturb = 0.2 # Perturbation factor
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
-        self.rho0 = 1000.0
+        self.rho0 = 1
 
         self.c0 = 15.0
         self.hdx = 1.0
@@ -214,7 +215,6 @@ class Taylor_Green(Application):
     def _get_sph_evaluator(self, array):
         if not hasattr(self, '_sph_eval'):
             from pysph.tools.sph_evaluator import SPHEvaluator
-            from pysph.sph.wc.edac import ComputeAveragePressure
             equations = [
                 ComputeAveragePressure(dest='fluid', sources=['fluid'])
             ]
@@ -232,7 +232,7 @@ class Taylor_Green(Application):
             return
 
         from pysph.solver.utils import iter_output
-        decay_rate = -8.0 * np.pi**2 / self.re
+        decay_rate = -8.0 * pi**2 / self.re
         U = self.U
 
         files = self.output_files
