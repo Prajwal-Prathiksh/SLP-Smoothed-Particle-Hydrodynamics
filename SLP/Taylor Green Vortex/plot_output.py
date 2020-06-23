@@ -3,14 +3,15 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 
 
-nx, perturb = 50, 0
+nx, perturb = 50, 0.2
 nx, perturb = str(int(nx)), str(perturb)
 
 file_base = '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Taylor Green Vortex/Output/'
 file_base += 'nx_' + nx + '/perturb_' + perturb
 
-sph_schm = ['edac', 'tvf', 'wcsph', 'dpsph']
-#sph_schm = ['1', '2', '3']
+#sph_schm = ['edac', 'tvf', 'wcsph', 'dpsph']
+sph_schm = ['edac', 'tvf', 'dpsph']
+#sph_schm = ['case-1', 'case-2', 'case-3']
 
 ################################################################################
 ## Plot decay
@@ -31,7 +32,7 @@ for schm in sph_schm:
     
     # Plot
     if schm == 'edac':
-    #if schm == '1':
+    #if schm == 'case-1':
         plt.semilogy(t, decay_ex, '--k', linewidth=3, label="exact")
     plt.semilogy(t, decay, linewidth=2, label=schm)
     
@@ -120,6 +121,7 @@ for schm in sph_schm:
     
     # Plot
     plt.plot(t, p_l1,linewidth=2, label=schm)
+    #plt.semilogy(t, p_l1,linewidth=2, label=schm)
     
 # Formatting
 plt.xlabel(r't $\rightarrow$')
@@ -135,7 +137,7 @@ plt.savefig(tle, dpi=400)
 ################################################################################
 ## Run-time
 ################################################################################
-
+'''
 nx_low = [54.58, 38.81, 31.11, 35.25]
 nx_high = [98.9, 126.99, 78.52, 97.91]
 x_ax = ['dpsph', 'edac', 'tvf', 'wcsph']
@@ -155,3 +157,4 @@ plt.legend()
 plt.grid()
 tle = 'runtime.png' 
 plt.savefig(tle, dpi=400)
+'''
