@@ -57,7 +57,7 @@ class Taylor_Green(Application):
         '''
 
         # Simulation Parameters
-        self.nx = 80
+        self.nx = 50
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
@@ -175,29 +175,58 @@ class Taylor_Green(Application):
 
     ###### Post processing
     def _get_post_process_props(self, array):
+        """Return x, y, m, u, v, p.
         """
-        Return x, y, u, v, m
-        """
-        x, y, u, v, m = array.get('x', 'y', 'u', 'v', 'm')
-        
-        return x, y, u, v, m
+        if 'pavg' not in array.properties or \
+           'pavg' not in array.output_property_arrays:
+            self._add_extra_props(array)
+            sph_eval = self._get_sph_evaluator(array)
+            sph_eval.update_particle_arrays([array])
+            sph_eval.evaluate()
+
+        x, y, m, u, v, p, pavg = array.get(
+            'x', 'y', 'm', 'u', 'v', 'p', 'pavg'
+        )
+        return x, y, m, u, v, p - pavg
+
+    def _add_extra_props(self, array):
+        extra = ['pavg', 'nnbr']
+        for prop in extra:
+            if prop not in array.properties:
+                array.add_property(prop)
+        array.add_output_arrays(extra)
+
+    def _get_sph_evaluator(self, array):
+        if not hasattr(self, '_sph_eval'):
+            from pysph.tools.sph_evaluator import SPHEvaluator
+            from pysph.sph.wc.edac import ComputeAveragePressure
+            equations = [
+                ComputeAveragePressure(dest='fluid', sources=['fluid'])
+            ]
+            dm = self.create_domain()
+            sph_eval = SPHEvaluator(
+                arrays=[array], equations=equations, dim=2,
+                kernel=QuinticSpline(dim=2), domain_manager=dm
+            )
+            self._sph_eval = sph_eval
+        return self._sph_eval
 
     def post_process(self, info_fname):
-
         info = self.read_info(info_fname)
         if len(self.output_files) == 0:
             return
 
         from pysph.solver.utils import iter_output
-        decay_rate = -8.0 * pi**2 / self.re
+        decay_rate = -8.0 * np.pi**2 / self.re
+        U = self.U
 
         files = self.output_files
-        t, ke, ke_ex, decay, linf, l1 = [], [], [], [], [], []
+        t, ke, ke_ex, decay, linf, l1, p_l1 = [], [], [], [], [], [], []
         for sd, array in iter_output(files, 'fluid'):
             _t = sd['t']
             t.append(_t)
-            x, y, u, v, m = self._get_post_process_props(array)
-            u_e, v_e, p_e = exact_solution(self.U, decay_rate, _t, x, y)
+            x, y, m, u, v, p = self._get_post_process_props(array)
+            u_e, v_e, p_e = exact_solution(U, decay_rate, _t, x, y)
             vmag2 = u**2 + v**2
             vmag = np.sqrt(vmag2)
             ke.append(0.5 * np.sum(m * vmag2))
@@ -207,7 +236,7 @@ class Taylor_Green(Application):
 
             vmag_max = vmag.max()
             decay.append(vmag_max)
-            theoretical_max = self.U * np.exp(decay_rate * _t)
+            theoretical_max = U * np.exp(decay_rate * _t)
             linf.append(abs((vmag_max - theoretical_max) / theoretical_max))
 
             l1_err = np.average(np.abs(vmag - vmag_e))
@@ -215,15 +244,18 @@ class Taylor_Green(Application):
             # scale the error by the maximum velocity.
             l1.append(l1_err / avg_vmag_e)
 
+            p_e_max = np.abs(p_e).max()
+            p_error = np.average(np.abs(p - p_e)) / p_e_max
+            p_l1.append(p_error)
 
-        t, ke, ke_ex, decay, l1, linf = list(map(
-            np.asarray, (t, ke, ke_ex, decay, l1, linf))
+        t, ke, ke_ex, decay, l1, linf, p_l1 = list(map(
+            np.asarray, (t, ke, ke_ex, decay, l1, linf, p_l1))
         )
-        decay_ex = self.U * np.exp(decay_rate * t)
+        decay_ex = U * np.exp(decay_rate * t)
         fname = os.path.join(self.output_dir, 'results.npz')
         np.savez(
-            fname, t=t, ke=ke, ke_ex=ke_ex, decay=decay, linf=linf, l1=l1, 
-            decay_ex=decay_ex
+            fname, t=t, ke=ke, ke_ex=ke_ex, decay=decay, linf=linf, l1=l1,
+            p_l1=p_l1, decay_ex=decay_ex
         )
 
         import matplotlib
@@ -236,21 +268,28 @@ class Taylor_Green(Application):
         plt.xlabel('t')
         plt.ylabel('max velocity')
         plt.legend()
-        fig = os.path.join(self.output_dir, "decay_dpsph_2.png")
+        fig = os.path.join(self.output_dir, "decay.png")
         plt.savefig(fig, dpi=300)
 
         plt.clf()
         plt.plot(t, linf)
         plt.xlabel('t')
         plt.ylabel(r'$L_\infty$ error')
-        fig = os.path.join(self.output_dir, "linf_error_dpsph_2.png")
+        fig = os.path.join(self.output_dir, "linf_error.png")
         plt.savefig(fig, dpi=300)
 
         plt.clf()
         plt.plot(t, l1, label="error")
         plt.xlabel('t')
         plt.ylabel(r'$L_1$ error')
-        fig = os.path.join(self.output_dir, "l1_error_dpsph_2.png")
+        fig = os.path.join(self.output_dir, "l1_error.png")
+        plt.savefig(fig, dpi=300)
+
+        plt.clf()
+        plt.plot(t, p_l1, label="error")
+        plt.xlabel('t')
+        plt.ylabel(r'$L_1$ error for $p$')
+        fig = os.path.join(self.output_dir, "p_l1_error.png")
         plt.savefig(fig, dpi=300)
 
 ################################################################################
