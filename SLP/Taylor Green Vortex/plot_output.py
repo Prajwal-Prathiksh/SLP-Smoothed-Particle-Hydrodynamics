@@ -10,7 +10,7 @@ file_base = '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodyn
 file_base += 'nx_' + nx + '/perturb_' + perturb
 
 sph_schm = ['edac', 'tvf', 'wcsph', 'dpsph']
-sph_schm = ['1', '2', '3']
+#sph_schm = ['1', '2', '3']
 
 ################################################################################
 ## Plot decay
@@ -30,8 +30,8 @@ for schm in sph_schm:
     t, decay, decay_ex = data['t'], data['decay'], data['decay_ex']
     
     # Plot
-    #if schm == 'edac':
-    if schm == '1':
+    if schm == 'edac':
+    #if schm == '1':
         plt.semilogy(t, decay_ex, '--k', linewidth=3, label="exact")
     plt.semilogy(t, decay, linewidth=2, label=schm)
     
