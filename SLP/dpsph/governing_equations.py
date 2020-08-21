@@ -389,3 +389,61 @@ class ContinuityEquation_RDGC_DPSPH(Equation):
         # NOTE: R2JI = R2IJ, since norm is symmetric
 
         d_arho[d_idx] +=  (tmp1 + tmp2) * Vj
+
+
+class LaminarViscosityDeltaSPHPreStep(Equation):
+
+    def __init__(self, dest, sources, fx=0.0, fy=0.0, fz=0.0):
+        r"""
+            Parameters:
+            -----------
+            fx : float, Default = 0.0
+                Body-force in x-axis
+
+            fy : float, Default = 0.0
+                Body-force in y-axis
+
+            fz : float, Default = 0.0
+                Body-force in z-axis
+            """
+        self.fx = fx
+        self.fy = fy
+        self.fz = fz
+
+        super(LaminarViscosityDeltaSPHPreStep, self).__init__(dest, sources)
+
+    def initialize(self, d_idx, d_au, d_av, d_aw):
+        d_au[d_idx] = 0.0
+        d_av[d_idx] = 0.0
+        d_aw[d_idx] = 0.0
+
+    def loop(
+        self, d_idx, s_idx, s_rho, DWIJ, s_m, d_au, d_av,  d_aw, d_p, s_p
+    ):
+        
+        rhoj = s_rho[s_idx]
+        Vj = s_m[s_idx] / rhoj
+
+        Pi = d_p[d_idx]
+        Pj = s_p[s_idx]
+        
+        # F_ij
+        if Pi < 0.0:
+            Fij = 1.0*(Pj - Pi)
+        else:
+            Fij = -1.0*(Pi + Pj)
+
+        tmp = Fij*Vj
+
+        # Accelerations
+        d_au[d_idx] += tmp*DWIJ[0]
+        d_av[d_idx] += tmp*DWIJ[1]
+        d_aw[d_idx] += tmp*DWIJ[2]
+
+    def post_loop(self, d_idx, d_au, d_av, d_aw, d_rho):
+                
+        rhoi = d_rho[d_idx]
+        
+        d_au[d_idx] = d_au[d_idx] / rhoi + self.fx
+        d_av[d_idx] = d_av[d_idx] / rhoi + self.fy
+        d_aw[d_idx] = d_aw[d_idx] / rhoi + self.fz
