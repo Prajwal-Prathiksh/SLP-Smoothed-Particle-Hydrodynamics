@@ -418,32 +418,40 @@ class LaminarViscosityDeltaSPHPreStep(Equation):
         d_aw[d_idx] = 0.0
 
     def loop(
-        self, d_idx, s_idx, s_rho, DWIJ, s_m, d_au, d_av,  d_aw, d_p, s_p
+        self, d_idx, s_idx, s_rho, DWIJ, s_m, d_au, d_av,  d_aw, d_p, s_p, d_rho
     ):
-        
-        rhoj = s_rho[s_idx]
-        Vj = s_m[s_idx] / rhoj
+
+        rhoi = d_rho[d_idx]         
+        Vj = s_m[s_idx]/s_rho[s_idx]
 
         Pi = d_p[d_idx]
         Pj = s_p[s_idx]
         
         # F_ij
         if Pi < 0.0:
-            Fij = 1.0*(Pj - Pi)
+            Fij = -1.0*(Pj - Pi)
         else:
             Fij = -1.0*(Pi + Pj)
 
-        tmp = Fij*Vj
+        tmp = Fij*Vj/rhoi
 
         # Accelerations
         d_au[d_idx] += tmp*DWIJ[0]
         d_av[d_idx] += tmp*DWIJ[1]
         d_aw[d_idx] += tmp*DWIJ[2]
 
-    def post_loop(self, d_idx, d_au, d_av, d_aw, d_rho):
-                
-        rhoi = d_rho[d_idx]
+    def post_loop(self, d_idx, d_au, d_av, d_aw, d_rho):        
         
-        d_au[d_idx] = d_au[d_idx] / rhoi + self.fx
-        d_av[d_idx] = d_av[d_idx] / rhoi + self.fy
-        d_aw[d_idx] = d_aw[d_idx] / rhoi + self.fz
+        d_au[d_idx] = d_au[d_idx] + self.fx
+        d_av[d_idx] = d_av[d_idx] + self.fy
+        d_aw[d_idx] = d_aw[d_idx] + self.fz
+        
+
+class Spatial_Acceleration(Equation):
+    def __init__(self, dest, sources):
+        super(Spatial_Acceleration, self).__init__(dest, sources)
+
+    def initialize(self, d_idx, d_ax, d_ay, d_az, d_u, d_v, d_w):
+        d_ax[d_idx] = d_u[d_idx]
+        d_ay[d_idx] = d_v[d_idx]
+        d_az[d_idx] = d_w[d_idx]

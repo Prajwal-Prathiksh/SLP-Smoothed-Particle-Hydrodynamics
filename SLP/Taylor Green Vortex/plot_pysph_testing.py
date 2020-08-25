@@ -1,24 +1,35 @@
 import numpy as np
 import matplotlib.pyplot as plt
-plt.rcParams.update({'font.size': 22})
+plt.rcParams.update({'font.size': 20})
 
 
-nx, perturb = 50, 0.2
-nx, perturb = str(int(nx)), str(perturb)
+#nx, perturb = 50, 0.2
+#nx, perturb = str(int(nx)), str(perturb)
 
-file_base = '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Taylor Green Vortex/PySPH-Testing'
+file_base = '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Taylor Green Vortex/PySPH-Testing/'
 
 
-sph_schm = ['00', '01', '02', '03']
+sph_schm = ['01', '08', '03', '07', '10']
+
+sph_schm_legend = {
+    '00': 'PySPH: DSPH', '01': 'PySPH: DSPH + Pertrub', '02': 'DPSPH', 
+    '03': 'DPSPH + Pertrub', '04': 'Case 1', '05': 'Case 2',
+    '06': 'Case 3', '07': 'Case 3 + Perturb', '08': 'PyPSH: EDAC + Perturb',
+    '09': 'PySPH: EDAC', '10': 'Case 4 + Perturb', '11': 'Case 3 + Perturb',
+    '12': 'DPSPH + Perturb', '13': 'PySPH: DSPH + Perturb', '14': 'PySPH: EDAC + Pertrub'
+    }
+title_additional = ' | nx = 30 | Perturb = 0.2'
+savefig_additional = ''
 
 ################################################################################
 ## Plot decay
 ################################################################################
-sz = (15,10)
+sz = (19.20,10.80)
 plt.figure(figsize=sz)
 
+cnt = 1
 for schm in sph_schm:        
-    file_loc = file_base + '/' + schm + '/results.npz'
+    file_loc = file_base + '/Outputs/' + schm + '/results.npz'
     # Read data
     data = np.load(file_loc)
     
@@ -27,18 +38,19 @@ for schm in sph_schm:
     
     # Plot
 
-    if schm == '00':
+    if cnt == 1:
         plt.semilogy(t, decay_ex, '--k', linewidth=3, label="exact") # Exact Solution
+        cnt = 0
 
-    plt.semilogy(t, decay, linewidth=2, label=schm) # Simulation Solution
+    plt.semilogy(t, decay, linewidth=2, label=sph_schm_legend[schm]) # Simulation Solution
     
 # Formatting    
 plt.xlabel(r't $\rightarrow$')
 plt.ylabel(r'Max Velocity $\rightarrow$')
-tle = r'Max Velocity in flow vs Time'
+tle = r'Max Velocity in flow vs Time' + title_additional
 plt.title(tle)
 plt.legend()
-tle = file_base + '/decay.png' 
+tle = file_base + '/decay' + savefig_additional + '.png' 
 plt.savefig(tle, dpi=400)
 
 
@@ -48,7 +60,7 @@ plt.savefig(tle, dpi=400)
 plt.figure(figsize=sz)
 
 for schm in sph_schm:
-    file_loc = file_base + '/' + schm + '/results.npz'
+    file_loc = file_base + '/Outputs/' + schm + '/results.npz'
     # Read data
     data = np.load(file_loc)
     
@@ -56,15 +68,15 @@ for schm in sph_schm:
     t, linf = data['t'], data['linf']
     
     # Plot
-    plt.plot(t, linf, linewidth=2, label=schm)
+    plt.plot(t, linf, linewidth=2, label=sph_schm_legend[schm])
     
 # Formatting
 plt.xlabel(r't $\rightarrow$')
 plt.ylabel(r'$L_\infty$ error $\rightarrow$')
-tle = r'$L_\infty$ error vs Time'
+tle = r'$L_\infty$ error vs Time' + title_additional
 plt.title(tle)
 plt.legend()
-tle = file_base + '/linf_error.png' 
+tle = file_base + '/linf_error' + savefig_additional + '.png' 
 plt.savefig(tle, dpi=400)
 
 
@@ -74,7 +86,7 @@ plt.savefig(tle, dpi=400)
 plt.figure(figsize=sz)
 
 for schm in sph_schm:
-    file_loc = file_base + '/' + schm + '/results.npz'
+    file_loc = file_base + '/Outputs/' + schm + '/results.npz'
     # Read data
     data = np.load(file_loc)
     
@@ -82,15 +94,15 @@ for schm in sph_schm:
     t, l1 = data['t'], data['l1']
     
     # Plot
-    plt.plot(t, l1,linewidth=2, label=schm)
+    plt.plot(t, l1,linewidth=2, label=sph_schm_legend[schm])
     
 # Formatting
 plt.xlabel(r't $\rightarrow$')
 plt.ylabel(r'$L_1$ error $\rightarrow$')
-tle = r'$L_1$ error vs Time'
+tle = r'$L_1$ error vs Time' + title_additional
 plt.title(tle)
 plt.legend()
-tle = file_base + '/l1_error.png' 
+tle = file_base + '/l1_error' + savefig_additional + '.png' 
 plt.savefig(tle, dpi=400)
 
 ################################################################################
@@ -99,7 +111,7 @@ plt.savefig(tle, dpi=400)
 plt.figure(figsize=sz)
 
 for schm in sph_schm:
-    file_loc = file_base + '/' + schm + '/results.npz'
+    file_loc = file_base + '/Outputs/' + schm + '/results.npz'
     # Read data
     data = np.load(file_loc)
     
@@ -107,41 +119,88 @@ for schm in sph_schm:
     t, p_l1 = data['t'], data['p_l1']
     
     # Plot
-    plt.plot(t, p_l1,linewidth=2, label=schm)
+    plt.plot(t, p_l1,linewidth=2, label=sph_schm_legend[schm])
     #plt.semilogy(t, p_l1,linewidth=2, label=schm)
     
 # Formatting
 plt.xlabel(r't $\rightarrow$')
 plt.ylabel(r'$L_1$ error for $p \rightarrow$')
-tle = r'$L_1$ error for $p$ vs Time'
+tle = r'$L_1$ error for $p$ vs Time' + title_additional
 plt.title(tle)
 plt.legend()
-tle = file_base + '/p_l1_error.png' 
+tle = file_base + '/p_l1_error' + savefig_additional + '.png' 
 plt.savefig(tle, dpi=400)
-
 
 
 ################################################################################
 ## Run-time
 ################################################################################
-'''
-nx_low = [54.58, 38.81, 31.11, 35.25]
-nx_high = [98.9, 126.99, 78.52, 97.91]
-x_ax = ['dpsph', 'edac', 'tvf', 'wcsph']
+def extract_RT(file_loc):
 
-sz = (15,10)
-plt.figure(figsize=sz)
-plt.plot(x_ax, nx_high, 'ob',linewidth=2, label='nx:50')
-plt.plot(x_ax, nx_high, '--b',linewidth=2)
-plt.plot(x_ax, nx_low, 'ok', linewidth=2, label='nx:30')
-plt.plot(x_ax, nx_low, '--k', linewidth=2)
-# Formatting
-plt.xlabel('SPH Scheme')
-plt.ylabel(r'Average runtime (avg[3 runs]) (s) $\rightarrow$')
-tle = r'Average runtime (avg[3 runs]) vs SPH Scheme'
-plt.title(tle)
-plt.legend()
-plt.grid()
-tle = 'runtime.png' 
+    from os import walk
+    files = []
+    for (dirpath, dirnames, filenames) in walk(file_loc):
+        files.extend(filenames)
+        break
+
+    fname = ''
+    for i in files:
+        if i.endswith('.log'):
+            fname = i
+
+    file_loc += '/' + fname
+    data = open(file_loc, 'r')
+    lines = data.read()
+    rt = float(lines[lines.find('Run took: ')+10:].split(' secs')[0])
+    data.close()
+
+    return rt
+
+
+RT_y = []
+RT_x = []
+for schm in sph_schm:
+    file_loc = file_base + '/Outputs/' + schm 
+    # Read data
+    RT_y.append(extract_RT(file_loc))
+    RT_x.append(sph_schm_legend[schm])
+    
+# Plotting
+plt.rcParams.update({'font.size': 14})
+fig, ax = plt.subplots(figsize=(19.20,10.80))
+
+# Horizontal Bar Plot 
+ax.barh(RT_x, RT_y, height=0.4)
+# Remove axes splines 
+for s in ['top', 'bottom', 'left', 'right']: 
+    ax.spines[s].set_visible(False) 
+  
+# Remove x, y Ticks 
+ax.xaxis.set_ticks_position('none') 
+ax.yaxis.set_ticks_position('none') 
+
+ax.set_xlabel(r'Run time (second) $\rightarrow$')
+  
+# Add padding between axes and labels 
+#ax.xaxis.set_tick_params(pad = 5) 
+#ax.yaxis.set_tick_params(pad = 10) 
+  
+# Add x, y gridlines 
+ax.grid(b = True, color ='black', 
+        linestyle ='-.', linewidth = 0.7, 
+        alpha = 0.2) 
+  
+# Show top values  
+#ax.invert_yaxis() 
+  
+# Add annotation to bars 
+for i in ax.patches: 
+    plt.text(i.get_width(), i.get_y()+0.2,  
+             str(round((i.get_width()), 2)), 
+             fontsize = 11, fontweight ='bold', 
+             color ='grey') 
+  
+# Add Plot Title 
+ax.set_title('Run Time - SPH Schemes') 
+tle = file_base + '/run_time' + savefig_additional + '.png' 
 plt.savefig(tle, dpi=400)
-'''

@@ -5,14 +5,19 @@
 # PySPH base imports
 from pysph.base.kernels import WendlandQuintic, QuinticSpline
 from pysph.base.nnps import DomainManager
+from pysph.base.utils import get_particle_array_wcsph
 
 # PySPH solver imports
 from pysph.solver.application import Application
 from pysph.solver.solver import Solver
 
 # PySPH sph imports
-from pysph.sph.equation import Equation, Group, MultiStageEquations
+from pysph.sph.equation import Equation, Group
 from pysph.sph.wc.edac import ComputeAveragePressure
+
+# SPH Integrator Imports
+from pysph.sph.integrator import EulerIntegrator, PECIntegrator
+from pysph.sph.integrator_step import EulerStep, WCSPHStep
 
 # Numpy import
 from numpy import cos, sin, exp, pi
@@ -23,33 +28,31 @@ import os
 import sys
 sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics')
 
-# Import PySPH - SPH Equations
+# SPH Equation Imports
 
 ### EOS
 from pysph.sph.basic_equations import IsothermalEOS 
+from pysph.sph.wc.basic import TaitEOS
 
-
-### Momentum Eq - MomentumEquationDeltaSPH does not have first part
-from SLP.dpsph.governing_equations import LaminarViscosityDeltaSPHPreStep
+### Momentum Equation
+from SLP.dpsph.governing_equations import LaminarViscosityDeltaSPHPreStep   
 from pysph.sph.wc.viscosity import LaminarViscosityDeltaSPH
+from pysph.sph.wc.basic import  MomentumEquation, MomentumEquationDeltaSPH
 
-
-
-### Continuity Eq
+### Continuity Equation
 from pysph.sph.wc.transport_velocity import ContinuityEquation
+from pysph.sph.wc.basic import (
+    ContinuityEquationDeltaSPHPreStep, ContinuityEquationDeltaSPH
+)
 
-# KC
-from pysph.sph.wc.kernel_correction import GradientCorrection, GradientCorrectionPreStep
+### Position Equation
+from SLP.dpsph.governing_equations import Spatial_Acceleration
+from pysph.sph.basic_equations import XSPHCorrection
 
-# Density correction
-from pysph.sph.wc.basic import ContinuityEquationDeltaSPHPreStep, ContinuityEquationDeltaSPH
-
-from SLP.dpsph.utils import get_particle_array_dpsph
-from pysph.base.utils import get_particle_array_wcsph
-
-
-from pysph.sph.integrator import EulerIntegrator, PECIntegrator
-from pysph.sph.integrator_step import EulerStep, WCSPHStep
+### Kernel Correction
+from pysph.sph.wc.kernel_correction import (
+    GradientCorrection, GradientCorrectionPreStep
+)
 
 ################################################################################
 # CODE
@@ -75,14 +78,14 @@ class Taylor_Green(Application):
         '''
 
         # Simulation Parameters
-        self.nx = 25
+        self.nx = 50
         self.perturb = 0 # Perturbation factor
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
-        self.rho0 = 1
+        self.rho0 = 1.0
 
-        self.c0 = 15.0
+        self.c0 = 10.0
         self.hdx = 1.0
 
         # Calculate simulation parameters
@@ -101,7 +104,7 @@ class Taylor_Green(Application):
         dt_force = 0.25 * 1.0
 
         self.dt = min(dt_cfl, dt_viscous, dt_force)
-        self.tf = 1.0
+        self.tf = 2.0
 
         # Print parameters
         print('dx : ', self.dx)
@@ -138,7 +141,7 @@ class Taylor_Green(Application):
         add_props = ['rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 'ax', 'ay', 'az']
         for i in add_props:
             pa_fluid.add_property(i)
-    
+
         return [pa_fluid]
 
     def create_domain(self):
@@ -155,10 +158,11 @@ class Taylor_Green(Application):
         '''
         Define solver
         '''
-        kernel = WendlandQuintic(dim=2)
+
+        #kernel = WendlandQuintic(dim=2)
+        kernel = QuinticSpline(dim=2)
         
         #integrator = EulerIntegrator_DPSPH(fluid = EulerStep_DPSPH())
-        #integrator = EulerIntegrator(fluid = EulerStep())
         integrator = PECIntegrator(fluid = WCSPHStep())
 
         solver = Solver(
@@ -172,51 +176,73 @@ class Taylor_Green(Application):
         '''
         Set-up governing equations
         '''
+        
+        '''
         equations = [
-            Group(
-                equations=[
-                    IsothermalEOS(
-                        dest='fluid', sources=['fluid'],rho0=self.rho0,
-                        c0=self.c0, p0=0.0
-                    ),
-                ], real=False       
-            ),
+            Group(equations=[
 
-            Group(
-                equations=[
-                    LaminarViscosityDeltaSPHPreStep(
-                        dest='fluid', sources=['fluid']
-                    ),
-                    LaminarViscosityDeltaSPH(
-                        dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0,
-                        nu=self.nu
-                    )
-                ], real=True
-            ),
+                TaitEOS(dest='fluid', sources=None, rho0=self.rho0, c0=self.c0, gamma=7.0,
+                p0=0.0)
+            
+            ],real=False, update_nnps=False, iterate=False, max_iterations=1,
+            min_iterations=0, pre=None, post=None),
 
+            Group(equations=[
 
-            Group(
-                equations=[
-                    ContinuityEquation(
-                        dest='fluid', sources=['fluid']
-                    ),
-                    GradientCorrectionPreStep(
-                        dest='fluid', sources=['fluid'], dim=2
-                    ),
-                    GradientCorrection(
-                        dest='fluid', sources=['fluid'], dim=2, tol=0.1
-                    ),
-                    ContinuityEquationDeltaSPHPreStep(
-                        dest='fluid', sources=['fluid']
-                    ),
-                    ContinuityEquationDeltaSPH(
-                        dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1
-                    )
-                ], real= True
+                GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2)
+            
+            ],real=False, update_nnps=False, iterate=False, max_iterations=1,
+            min_iterations=0, pre=None, post=None),
 
-            ),
+            Group(equations=[
+
+                GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
+                ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid'])
+            
+            ],real=True, update_nnps=False, iterate=False, max_iterations=1,
+            min_iterations=0, pre=None, post=None),
+            
+            Group(equations=[
+
+                ContinuityEquation(dest='fluid', sources=['fluid']), 
+                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0,
+                delta=0.1), 
+                MomentumEquation(dest='fluid', sources=['fluid'], c0=self.c0, alpha=0.0,
+                beta=0.0, gx=0.0, gy=0.0, gz=0.0, tensile_correction=False), 
+                MomentumEquationDeltaSPH(dest='fluid', sources=['fluid'], rho0=self.rho0,
+                c0=self.c0, alpha=0.0), 
+                LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2,
+                rho0=self.rho0, nu=self.nu), 
+                XSPHCorrection(dest='fluid', sources=['fluid'], eps=0.5)
+            
+            ],real=True, update_nnps=False, iterate=False, max_iterations=1,
+            min_iterations=0, pre=None, post=None)
         ]
-    
+        '''
+        equations = [
+            Group(equations=[
+                
+                IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
+                GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2)
+            
+            ],real=False, update_nnps=False, iterate=False, max_iterations=1,
+            min_iterations=0, pre=None, post=None),
+
+            Group(equations=[
+
+                LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+                LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu), 
+                Spatial_Acceleration(dest='fluid', sources=['fluid']),
+
+                ContinuityEquation(dest='fluid', sources=['fluid']),
+                GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
+                ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']), 
+                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1) 
+            
+            ],real=True, update_nnps=False, iterate=False, max_iterations=1,
+            min_iterations=0, pre=None, post=None),
+        ]
+
         return equations
 
     ###### Post processing
