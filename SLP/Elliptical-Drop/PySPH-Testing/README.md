@@ -4,7 +4,7 @@
 
 * 00 - `test.py --openmp --scheme wcsph --pfreq 30`
 
-* 01 - `test.py --openmp --scheme iisph --pfreq 30`
+* 01 - `test.py --openmp --scheme iisph --pfreq 5`
 
 * 02 - `test.py --openmp --scheme wcsph --delta-sph --pfreq 30`
 

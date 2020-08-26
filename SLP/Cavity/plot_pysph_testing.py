@@ -8,12 +8,12 @@ plt.rcParams.update({'font.size': 20})
 
 file_base = '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Cavity/PySPH-Testing'
 
-sph_schm = ['00', '01']
+sph_schm = ['00', '01', '02', '03']
 
 sph_schm_legend = {
-    '00': 'PySPH: TVF', '01': 'Euler Int'
+    '00': 'TVF', '01': 'TVF, EI', '02': 'EDAC', '03': r'$\delta^+$-SPH (no M)',
 }
-title_additional = ' | nx = 50'
+title_additional = ''
 savefig_additional = ''
 
 ################################################################################
@@ -115,3 +115,78 @@ for schm in sph_schm:
     plt.title('Streamlines at %s seconds' % tf)
     tle = file_base + '/streamplot_' + schm + '.png' 
     plt.savefig(tle, dpi=400)
+
+
+
+################################################################################
+## Run-time
+################################################################################
+def extract_RT(file_loc):
+
+    from os import walk
+    files = []
+    for (dirpath, dirnames, filenames) in walk(file_loc):
+        files.extend(filenames)
+        break
+
+    fname = ''
+    for i in files:
+        if i.endswith('.log'):
+            fname = i
+
+    file_loc += '/' + fname
+    data = open(file_loc, 'r')
+    lines = data.read()
+    rt = float(lines[lines.find('Run took: ')+10:].split(' secs')[0])
+    data.close()
+
+    return rt
+
+
+RT_y = []
+RT_x = []
+for schm in sph_schm:
+    file_loc = file_base + '/Outputs/' + schm 
+    # Read data
+    RT_y.append(extract_RT(file_loc))
+    RT_x.append(sph_schm_legend[schm])
+    
+# Plotting
+plt.rcParams.update({'font.size': 14})
+fig, ax = plt.subplots(figsize=sz)
+
+# Horizontal Bar Plot 
+ax.barh(RT_x, RT_y, height=0.4)
+# Remove axes splines 
+for s in ['top', 'bottom', 'left', 'right']: 
+    ax.spines[s].set_visible(False) 
+  
+# Remove x, y Ticks 
+ax.xaxis.set_ticks_position('none') 
+ax.yaxis.set_ticks_position('none') 
+
+ax.set_xlabel(r'Run time (second) $\rightarrow$')
+  
+# Add padding between axes and labels 
+#ax.xaxis.set_tick_params(pad = 5) 
+#ax.yaxis.set_tick_params(pad = 10) 
+  
+# Add x, y gridlines 
+ax.grid(b = True, color ='black', 
+        linestyle ='-.', linewidth = 0.7, 
+        alpha = 0.2) 
+  
+# Show top values  
+#ax.invert_yaxis() 
+  
+# Add annotation to bars 
+for i in ax.patches: 
+    plt.text(i.get_width(), i.get_y()+0.2,  
+             str(round((i.get_width()), 2)), 
+             fontsize = 11, fontweight ='bold', 
+             color ='grey') 
+  
+# Add Plot Title 
+ax.set_title('Run Time - SPH Schemes') 
+tle = file_base + '/run_time' + savefig_additional + '.png' 
+plt.savefig(tle, dpi=400)
