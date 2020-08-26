@@ -225,8 +225,8 @@ class Taylor_Green(Application):
                 IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
                 GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2)
             
-            ],real=False, update_nnps=False, iterate=False, max_iterations=1,
-            min_iterations=0, pre=None, post=None),
+            ],real=False
+            ),
 
             Group(equations=[
 
@@ -237,10 +237,10 @@ class Taylor_Green(Application):
                 ContinuityEquation(dest='fluid', sources=['fluid']),
                 GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
                 ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']), 
-                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1) 
+                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1), 
             
-            ],real=True, update_nnps=False, iterate=False, max_iterations=1,
-            min_iterations=0, pre=None, post=None),
+            ],real=True
+            ),
         ]
 
         return equations
