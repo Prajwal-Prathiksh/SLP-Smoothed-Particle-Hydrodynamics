@@ -9,16 +9,18 @@ plt.rcParams.update({'font.size': 20})
 file_base = '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Taylor Green Vortex/PySPH-Testing/'
 
 
-sph_schm = ['01', '08', '03', '07', '10']
+sph_schm = ['01', '08', '03', '07']
 
 sph_schm_legend = {
-    '00': 'PySPH: DSPH', '01': 'PySPH: DSPH + Pertrub', '02': 'DPSPH', 
-    '03': 'DPSPH + Pertrub', '04': 'Case 1', '05': 'Case 2',
-    '06': 'Case 3', '07': 'Case 3 + Perturb', '08': 'PyPSH: EDAC + Perturb',
-    '09': 'PySPH: EDAC', '10': 'Case 4 + Perturb', '11': 'Case 3 + Perturb',
-    '12': 'DPSPH + Perturb', '13': 'PySPH: DSPH + Perturb', '14': 'PySPH: EDAC + Pertrub'
+    '00':  r'$\delta$-SPH', '01': r'$\delta$-SPH, Prt', '02': 'DPSPH-SPH', 
+    '03': 'DPSPH, Prt', '04': 'Case 1', '05': 'Case 2',
+    '06': r'$\delta^+$-SPH', '07': r'$\delta^+$-SPH, Prt', '08': 'EDAC, Prt',
+    '09': 'EDAC', '10': r'$\delta^+$-SPH, Prt, TEOS', 
+    '11': r'$\delta^+$-SPH, Prt, nx=30',
+    '12': r'$\delta^+$-SPH, Prt, nx=30', '13': r'$\delta$-SPH, Prt, nx=30', 
+    '14': 'EDAC, Prt, nx=30'
     }
-title_additional = ' | nx = 30 | Perturb = 0.2'
+title_additional = ' | nx = 50 | Perturb = 0.2'
 savefig_additional = ''
 
 ################################################################################
