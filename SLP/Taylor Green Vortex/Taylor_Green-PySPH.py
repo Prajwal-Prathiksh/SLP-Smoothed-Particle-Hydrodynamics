@@ -79,7 +79,7 @@ class Taylor_Green(Application):
 
         # Simulation Parameters
         self.nx = 50
-        self.perturb = 0 # Perturbation factor
+        self.perturb = 0.2 # Perturbation factor
         self.re = 100.0
         self.U = 1.0
         self.L = 1.0
@@ -138,10 +138,16 @@ class Taylor_Green(Application):
         pa_fluid.add_property('m_mat', stride=9)
         pa_fluid.add_property('gradrho', stride=3)
 
-        add_props = ['rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 'ax', 'ay', 'az']
+        add_props = [
+            'lmda', 'delta_p', 'rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 'ax', 
+            'ay', 'az', 'DRH', 'L10', 'L00', 'DY', 'DX', 'L01', 'L11']
         for i in add_props:
             pa_fluid.add_property(i)
 
+        pa_fluid.set_output_arrays([
+            'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'm', 'h',
+            'pid', 'gid', 'tag', 'p', 'lmda', 'delta_p', 'DRH'
+        ])
         return [pa_fluid]
 
     def create_domain(self):
@@ -158,11 +164,8 @@ class Taylor_Green(Application):
         '''
         Define solver
         '''
-
-        #kernel = WendlandQuintic(dim=2)
         kernel = QuinticSpline(dim=2)
         
-        #integrator = EulerIntegrator_DPSPH(fluid = EulerStep_DPSPH())
         integrator = PECIntegrator(fluid = WCSPHStep())
 
         solver = Solver(
@@ -229,15 +232,22 @@ class Taylor_Green(Application):
             ),
 
             Group(equations=[
+                GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
+                ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+            
+            ],real=True
+            ),
 
+            Group(equations=[
+
+                ContinuityEquation(dest='fluid', sources=['fluid']),                 
+                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1), 
+                #MomentumEquation(dest='fluid', sources=['fluid'], c0=self.c0, alpha=0.0, beta=0.0, gx=0.0, gy=0.0, gz=0.0, tensile_correction=False), 
+                #MomentumEquationDeltaSPH(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, alpha=0.0), 
                 LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
                 LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu), 
-                Spatial_Acceleration(dest='fluid', sources=['fluid']),
-
-                ContinuityEquation(dest='fluid', sources=['fluid']),
-                GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
-                ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']), 
-                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1), 
+                Spatial_Acceleration(dest='fluid', sources=['fluid']),                
+                #XSPHCorrection(dest='fluid', sources=['fluid'], eps=0.5),
             
             ],real=True
             ),

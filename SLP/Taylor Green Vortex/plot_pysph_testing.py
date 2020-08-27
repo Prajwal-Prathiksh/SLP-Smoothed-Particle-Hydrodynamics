@@ -18,7 +18,8 @@ sph_schm_legend = {
     '09': 'EDAC', '10': r'$\delta^+$-SPH, Prt, TEOS', 
     '11': r'$\delta^+$-SPH, Prt, nx=30',
     '12': r'$\delta^+$-SPH, Prt, nx=30', '13': r'$\delta$-SPH, Prt, nx=30', 
-    '14': 'EDAC, Prt, nx=30'
+    '14': 'EDAC, Prt, nx=30',
+    '20': 'Check1', '21': 'Check2'
     }
 title_additional = ' | nx = 50 | Perturb = 0.2'
 savefig_additional = ''

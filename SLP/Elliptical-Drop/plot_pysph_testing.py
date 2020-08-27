@@ -90,6 +90,30 @@ tle = file_base + '/ke_history' + savefig_additional + '.png'
 plt.savefig(tle, dpi=400)
 
 ################################################################################
+## Plot Linear Momentum History
+################################################################################
+plt.figure(figsize=sz)
+
+for schm in sph_schm:        
+    file_loc = file_base + '/Outputs/' + schm + '/results.npz'
+    # Read data
+    data = np.load(file_loc)
+    
+    # Unpack
+    t, mom = data['t'], data['mom']
+    
+    # Plot
+    plt.plot(t, mom, linewidth=2, label=sph_schm_legend[schm])
+    
+# Formatting    
+plt.xlabel('t')
+plt.ylabel('Linear Momentum')
+tle = r'Linear Momentum History' + title_additional
+plt.title(tle)
+plt.legend()
+tle = file_base + '/l_mom_history' + savefig_additional + '.png' 
+plt.savefig(tle, dpi=400)
+################################################################################
 ## Plot Semi-major axis history
 ################################################################################
 plt.figure(figsize=sz)

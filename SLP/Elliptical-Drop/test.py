@@ -199,6 +199,7 @@ class EllipticalDrop(Application):
             data['t'].append(_t)
             m, u, v, x, y = array.get('m', 'u', 'v', 'x', 'y')
             vmag2 = u**2 + v**2
+            mom = np.sum(m*np.sqrt(vmag2))
             data['ke'].append(0.5*np.sum(m*vmag2))
             data['xmax'].append(x.max())
             data['ymax'].append(y.max())
@@ -209,6 +210,7 @@ class EllipticalDrop(Application):
             data['ye'].append(_ye)
             data['y'].append(y)
             data['x'].append(x)
+            data['mom'].append(mom)
 
 
         for key in data:

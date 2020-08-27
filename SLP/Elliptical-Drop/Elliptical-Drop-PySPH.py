@@ -227,20 +227,25 @@ class EllipticalDrop(Application):
                 IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
                 GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2)
             ],
-            real=False),
+            real=False
+            ),
+        
+            Group(equations=[
+                GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
+                ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+            
+            ],real=True
+            ),
 
             Group(equations=[
-                #LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+                ContinuityEquation(dest='fluid', sources=['fluid']),
+                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1), 
                 MomentumEquation(dest='fluid', sources=['fluid'], c0=self.c0, alpha=0.0, beta=0.0), 
                 #MomentumEquationDeltaSPH(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, alpha=0.1), 
+                #LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
                 LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu), 
-                #XSPHCorrection(dest='fluid', sources=['fluid'], eps=0.5),
                 Spatial_Acceleration(dest='fluid', sources=['fluid']),
-                ContinuityEquation(dest='fluid', sources=['fluid']),
-                GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
-                ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),                 
-                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0,
-                delta=0.1), 
+                #XSPHCorrection(dest='fluid', sources=['fluid'], eps=0.5),                
             ],
             real=True),
         ]
@@ -286,6 +291,7 @@ class EllipticalDrop(Application):
             data['t'].append(_t)
             m, u, v, x, y = array.get('m', 'u', 'v', 'x', 'y')
             vmag2 = u**2 + v**2
+            mom = np.sum(m*np.sqrt(vmag2))
             data['ke'].append(0.5*np.sum(m*vmag2))
             data['xmax'].append(x.max())
             data['ymax'].append(y.max())
@@ -296,6 +302,7 @@ class EllipticalDrop(Application):
             data['ye'].append(_ye)
             data['y'].append(y)
             data['x'].append(x)
+            data['mom'].append(mom)
 
 
         for key in data:
