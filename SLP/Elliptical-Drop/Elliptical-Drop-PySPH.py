@@ -115,7 +115,7 @@ class EllipticalDrop(Application):
         '''
 
         # Simulation Parameters
-        self.nx = 40.0
+        self.nx = 25.0
         self.co = 1400.0
         self.ro = 1.0
         self.hdx = 1.3
@@ -133,7 +133,7 @@ class EllipticalDrop(Application):
         self.mu = ro*self.alpha*hdx*dx*co/8.0
         self.nu = self.mu / self.rho0
 
-        self.tf = 0.0076
+        self.tf = self.dt*40#0.0076
 
     def create_particles(self):
         """Create the circular patch of fluid."""
@@ -168,10 +168,19 @@ class EllipticalDrop(Application):
         
         pa.add_property('m_mat', stride=9)
         pa.add_property('gradrho', stride=3)
-
-        add_props = ['rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 'ax', 'ay', 'az']
+        pa.add_property('gradlmda', stride=3)
+        
+        add_props = [
+            'lmda', 'delta_s', 'rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 
+            'ax', 'ay', 'az', 'DRh', 'DY', 'DX', 'DZ'
+        ]
         for i in add_props:
             pa.add_property(i)
+
+        pa.set_output_arrays([
+            'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'm', 'h', 'pid', 'gid', 'tag', 
+            'p', 'lmda', 'delta_s', 'DRh',
+        ])
         return [pa]
 
     def create_solver(self):
@@ -222,10 +231,13 @@ class EllipticalDrop(Application):
             real=True)
         ]
         '''
+        from SLP.dpsph.equations import PST_PreStep_1, PST_PreStep_2, PST, AverageSpacing
         equations = [
             Group(equations=[
                 IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
-                GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2)
+                GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2),
+                PST_PreStep_1(dest='fluid', sources=['fluid'], dim=2),
+                AverageSpacing(dest='fluid', sources=['fluid'], dim=2),
             ],
             real=False
             ),
@@ -233,6 +245,8 @@ class EllipticalDrop(Application):
             Group(equations=[
                 GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
                 ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+                PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2),
+                PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, Uc0=self.c0, Rh=0.5),
             
             ],real=True
             ),
@@ -240,9 +254,9 @@ class EllipticalDrop(Application):
             Group(equations=[
                 ContinuityEquation(dest='fluid', sources=['fluid']),
                 ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1), 
-                MomentumEquation(dest='fluid', sources=['fluid'], c0=self.c0, alpha=0.0, beta=0.0), 
+                #MomentumEquation(dest='fluid', sources=['fluid'], c0=self.c0, alpha=0.0, beta=0.0), 
                 #MomentumEquationDeltaSPH(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, alpha=0.1), 
-                #LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+                LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
                 LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu), 
                 Spatial_Acceleration(dest='fluid', sources=['fluid']),
                 #XSPHCorrection(dest='fluid', sources=['fluid'], eps=0.5),                

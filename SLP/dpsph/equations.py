@@ -13,126 +13,8 @@ from compyle.api import declare
 from math import sqrt, pow
 
 ################################################################################
-# Delta_Plus - SPH Sceheme: Supplementary equations, and Particle Shifting 
-# Technique
+# Particle Shifting Technique
 ################################################################################
-
-class RenormalizationTensor2D_DPSPH(Equation):
-    r""" *Renormaliztion Tensor as defined by the Delta_plus SPH scheme for the 
-        2D case*
-
-        ..math::
-            \mathbb{L}_{i}=\bigg[\sum_j\mathbf{r_{ji}}\otimes\nabla_i W_{ij}V_j\bigg]^{-1}
-
-        ..math::
-            \lambda_i=\text{min}\big(\text{eigenvalue}(\mathbb{L}_i^{-1})\big)
-
-        References:
-        -----------
-        .. [Sun2017] Sun, P. N., et al. “The δ p l u s -SPH Model: Simple
-        Procedures for a Further Improvement of the SPH Scheme.” Computer 
-        Methods in Applied Mechanics and Engineering, vol. 315, Mar. 2017, pp. 
-        25–49. DOI.org (Crossref), doi:10.1016/j.cma.2016.10.028.
-
-        .. [Marrone2010] Marrone, S., et al. “Fast Free-Surface Detection and Level-
-        Set Function Definition in SPH Solvers.” Journal of Computational Physics, 
-        vol. 229, no. 10, May 2010, pp. 3652–63. DOI.org (Crossref), 
-        doi:10.1016/j.jcp.2010.01.019.
-
-        Parameters:
-        -----------
-        dim : integer
-            Number of dimensions
-    """
-    def __init__(self, dest, sources, dim):
-        r"""
-        Parameters:
-        -----------
-        dim : integer
-            Number of dimensions
-        """
-        if dim != 2:
-            raise ValueError("RenormalizationTensor2D_DPSPH - Dimension must be 2!")
-        else:
-            self.dim = dim
-
-        super(RenormalizationTensor2D_DPSPH, self).__init__(dest, sources)
-        
-    def initialize(self, d_idx, d_L00, d_L01, d_L10, d_L11, d_lmda):
-
-        d_L00[d_idx] = 0.0
-        d_L01[d_idx] = 0.0
-        d_L10[d_idx] = 0.0
-        d_L11[d_idx] = 0.0
-
-        d_lmda[d_idx] = 0.0 # Initialize \lambda
-
-    def loop(
-        self, d_idx, s_idx, XIJ, DWIJ, s_m, s_rho, d_L00, d_L01, d_L10, d_L11
-    ):
-        r"""
-            Computes the renormalization tensor
-            
-            Paramaters:
-            -----------
-            d_Lxx : DoubleArray
-                Components of the renormalized tensor
-        """
-
-        rhoj = s_rho[s_idx]
-        mj = s_m[s_idx]
-        Vj = mj/rhoj
-
-        # Tensor product
-        ### (-1) multiplied because XJI = -1.0*XIJ
-        a00 = -1.0*XIJ[0]*DWIJ[0]
-        a01 = -1.0*XIJ[0]*DWIJ[1]
-        a10 = -1.0*XIJ[1]*DWIJ[0]
-        a11 = -1.0*XIJ[1]*DWIJ[1]
-
-        # Sum Renormalization tensor
-        d_L00[d_idx] += a00*Vj
-        d_L01[d_idx] += a01*Vj
-        d_L10[d_idx] += a10*Vj
-        d_L11[d_idx] += a11*Vj
-
-    def post_loop(
-        self, d_idx, d_L00, d_L01, d_L10, d_L11, d_lmda, EPS
-    ):
-
-        # Store Tensor values
-        L00 = d_L00[d_idx]
-        L01 = d_L01[d_idx]
-        L10 = d_L10[d_idx]
-        L11 = d_L11[d_idx]
-
-        # Calculate determinant
-        Det = L00*L11 - L01*L10
-        Det = Det + EPS # Correction if determinant zero
-
-        # Quadratic equation to calculate eigen value
-        quad_b = L00 + L11
-
-        tmp1 = quad_b*quad_b - 4*Det
-
-        if tmp1 < 0:
-            d_lmda[d_idx] = 1.0
-        else:
-            tmp = sqrt(tmp1)
-            lmda1 = (quad_b + tmp)/2.0
-            lmda2 = (quad_b - tmp)/2.0
-
-            # Store lambda with the smaller eigenvalue
-            if lmda1 <= lmda2:
-                d_lmda[d_idx] = lmda1
-            else:
-                d_lmda[d_idx] = lmda2
-
-        # Store the inverse of the tensor
-        d_L00[d_idx] = L11/Det 
-        d_L01[d_idx] = -1.0*L01/Det 
-        d_L10[d_idx] = -1.0*L10/Det 
-        d_L11[d_idx] = L00/Det   
 
 class AverageSpacing(Equation):
     r"""*Average particle spacing in the neighbourhood of the :math:`i^{th}` 
@@ -164,11 +46,11 @@ class AverageSpacing(Equation):
         self.dim = dim
         super(AverageSpacing, self).__init__(dest, sources)
 
-    def initialize(self, d_idx, d_delta_p):
-        d_delta_p[d_idx] = 0.0
+    def initialize(self, d_idx, d_delta_s):
+        d_delta_s[d_idx] = 0.0
 
     def loop_all(
-        self, d_idx, d_delta_p, d_x, d_y, d_z, s_x, s_y, s_z, NBRS, N_NBRS
+        self, d_idx, d_delta_s, d_x, d_y, d_z, s_x, s_y, s_z, NBRS, N_NBRS
     ):
         i = declare('int')
         s_idx = declare('long')
@@ -185,66 +67,174 @@ class AverageSpacing(Equation):
             
             sum += rij
     
-        d_delta_p[d_idx] += sum/N_NBRS
+        d_delta_s[d_idx] += sum/N_NBRS
 
-class RDGC_DPSPH(Equation):
-    r"""*The renormalized density gradient correction (RDGC) term  defined by 
-        the Delta_plus SPH scheme*
+class PST_PreStep_1(Equation):
+    r"""*Particle-Shifting Technique employed in
+        Delta_plus SPH scheme*
 
         ..math::
-            \langle\nabla\rho\rangle_i^L=\sum_j(\rho_j-\rho_i)\mathbb{L}_{i}.
-            \nabla_i W_{ij}V_j
+            \mathbf{r_i}^\ast=\mathbf{r_i}+\delta\mathbf{\hat{r_i}}
+        
+        where, 
+
+        ..math::
+            \delta\mathbf{\hat{r_i}}=\begin{cases}
+                0  & ,\lambda_i\in[0,0.4) \\
+                (\mathbb{I}-\mathbf{n_i}\otimes\mathbf{n_i})\delta\mathbf{r_i} 
+                & ,\lambda_i\in[0.4, 0.75] \\
+                \delta\mathbf{r_i} & ,\lambda_i\in(0.75,1]
+            \end{cases}
+
+        ..math::
+            \delta\mathbf{r_i}=\frac{-\Delta t c_o(2h)^2}{h_i}.\sum_j\bigg[1+R
+            \bigg(\frac{W_{ij}}{W(\Delta p)}\bigg)^n\bigg]\nabla_i W_{ij}\bigg(
+            \frac{m_j}{\rho_i+\rho_j}\bigg)
+
+        ..math::
+            \mathbf{n_i}=\frac{\langle\nabla\lambda_i\rangle}{|\langle\nabla
+            \lambda_i\rangle|}
+
+        ..math::
+            \langle\nabla\lambda_i\rangle=\sum_j(\lambda_j-\lambda_i)\otimes
+            \mathbb{L}_i\nabla_i W_{ij}V_j
+
+        ..math::
+            \lambda_i=\text{min}\big(\text{eigenvalue}(\mathbb{L_i^{-1}})\big)
+
+        ..math::
+            \mathbb{L_i}=\bigg[\sum_j\mathbf{r_{ji}}\otimes\nabla_i W_{ij}V_j
+            \bigg]^{-1}
+
 
         References:
         -----------
-        .. [Marrone2011] Marrone, S., et al. “δ-SPH Model for Simulating Violent
-        Impact Flows.” Computer Methods in Applied Mechanics and 
-        Engineering, vol. 200, no. 13–16, Mar. 2011, pp. 1526–42. DOI.org 
-        (Crossref), doi:10.1016/j.cma.2010.12.016.
+        .. [Sun2017] Sun, P. N., et al. “The δ p l u s -SPH Model: Simple
+        Procedures for a Further Improvement of the SPH Scheme.” Computer 
+        Methods in Applied Mechanics and Engineering, vol. 315, Mar. 2017, pp. 
+        25–49. DOI.org (Crossref), doi:10.1016/j.cma.2016.10.028.
 
+        .. [Sun2019] Sun, P. N., et al. “A Consistent Approach to Particle 
+        Shifting in the δ - Plus -SPH Model.” Computer Methods in Applied 
+        Mechanics and Engineering, vol. 348, May 2019, pp. 912–34. DOI.org 
+        (Crossref), doi:10.1016/j.cma.2019.01.045.
+
+        .. [Monaghan2000] Monaghan, J. J. “SPH without a Tensile Instability.” 
+        Journal of Computational Physics, vol. 159, no. 2, Apr. 2000, pp. 
+        290–311. DOI.org (Crossref), doi:10.1006/jcph.2000.6439.
+        
         Parameters:
         -----------
+        H : float
+            Kernel smoothing length (:math:`h`)
+
         dim : integer
             Number of dimensions
+
+        cfl : float, default = 0.5
+            CFL value
+
+        Uc0 : float. default = 15.0
+            :math:`\frac{U}{c_o}` value of the system
+
+        R_coeff : float, default = 0.2
+            Artificial pressure coefficient
+
+        n_exp : float, default = 4
+            Artificial pressure exponent
+
+        Rh : float, default = 0.075
+            Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during Particle
+            shifting 
+            (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
     """
-
     def __init__(self, dest, sources, dim):
-        r"""
-        Parameters:
-        -----------
-        dim : integer
-            Number of dimensions
-        """
-        if dim != 2:
-            raise ValueError("RDGC_DPSPH - Dimension must be 2!")
-        else:
-            self.dim = dim
+        r'''
+            Parameters:
+            -----------
+            dim : integer
+                Number of dimensions
 
-        super(RDGC_DPSPH, self).__init__(dest, sources)
+        '''       
+            
+        self.dim = dim
+        super(PST_PreStep_1, self).__init__(dest, sources)
 
-    def initialize(self, d_idx, d_grad_rho1, d_grad_rho2):
-        d_grad_rho1[d_idx] = 0.0
-        d_grad_rho2[d_idx] = 0.0
+    def _cython_code_(self):
+        code = dedent("""
+        cimport cython
+        from pysph.base.linalg3 cimport eigen_decomposition
+        """)
+        return code
 
-    def loop(
-        self, d_idx, s_idx, d_grad_rho1, d_grad_rho2, d_rho, s_rho, d_L00, d_L01, 
-        d_L10, d_L11, DWIJ, s_m
-    ):
+    def initialize(self, d_idx, d_lmda):
+        d_lmda[d_idx] = 0.0 # Initialize \lambda1
 
-        rhoi = d_rho[d_idx]
-        rhoj = s_rho[s_idx]
+    def loop(self, d_idx, d_m_mat, d_lmda):
+        i, j, n = declare('int', 3)        
+        n = self.dim
 
-        Vj = s_m[s_idx]/rhoj
+        ## Matrix and vector declarations ##
 
-        rhoji = rhoj - rhoi
+        # Matrix of Eigenvectors (columns)
+        R = declare('matrix((3,3))')
+        # Eigenvalues
+        V = declare('matrix((3,))')
 
-        tmp1 = d_L00[d_idx]*DWIJ[0] + d_L01[d_idx]*DWIJ[1]
-        tmp2 = d_L10[d_idx]*DWIJ[0] + d_L11[d_idx]*DWIJ[1]
+        # L-Matrix
+        L = declare('matrix((3,3))')
 
-        d_grad_rho1[d_idx] += rhoji*tmp1*Vj
-        d_grad_rho2[d_idx] += rhoji*tmp2*Vj
+        for i in range(n):
+            for j in range(n):
+                L[i][j] = d_m_mat[9 * d_idx + 3 * i + j]
 
-class ParticleShiftingTechnique(Equation):
+        if n == 2:
+            L[2][2] = 99999.0
+
+        # compute the principle stresses
+        eigen_decomposition(L, R, cython.address(V[0]))
+
+        lmda = V[0]
+        for i in range(1, n):
+            if V[i] < lmda:
+                lmda = V[i]
+
+        d_lmda[d_idx] = lmda
+
+
+class PST_PreStep_2(Equation):
+    def __init__(self, dest, sources, dim):
+        r'''
+            Parameters:
+            -----------
+            dim : integer
+                Number of dimensions
+
+        '''       
+            
+        self.dim = dim
+        super(PST_PreStep_2, self).__init__(dest, sources)
+
+    def initialize(self, d_idx, d_gradlmda):
+        d_gradlmda[d_idx*3 + 0] = 0.0
+        d_gradlmda[d_idx*3 + 1] = 0.0
+        d_gradlmda[d_idx*3 + 2] = 0.0
+
+    def loop(self, d_idx, s_idx, d_lmda, d_gradlmda, s_rho, s_m, s_lmda, DWIJ):
+
+        Vj = s_m[s_idx]/s_rho[s_idx]
+        lmdai = d_lmda[d_idx]
+        lmdaj = s_lmda[s_idx]
+
+        lmdaij = (lmdai - lmdaj)
+
+        # renormalized density of eqn (5a)
+        d_gradlmda[d_idx*3 + 0] += lmdaij * DWIJ[0] * Vj
+        d_gradlmda[d_idx*3 + 1] += lmdaij * DWIJ[1] * Vj
+        d_gradlmda[d_idx*3 + 2] += lmdaij * DWIJ[2] * Vj
+
+
+class PST(Equation):
     r"""*Particle-Shifting Technique employed in
         Delta_plus SPH scheme*
 
@@ -325,7 +315,7 @@ class ParticleShiftingTechnique(Equation):
     """
     def __init__(
         self, dest, sources, H, dim, cfl=0.5, Uc0=15.0, R_coeff=0.2, n_exp=4.0,
-        Rh=0.115
+        Rh=0.115, saveAllDRh = False
     ):
         r'''
             Parameters:
@@ -353,53 +343,47 @@ class ParticleShiftingTechnique(Equation):
                 shifting 
                 (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
         '''       
-        if dim != 2:
-            raise ValueError("ParticleShiftingTechnique - Dimension must be 2!")
-        else:
-            self.dim = dim
-
+        
+        self.dim = dim
         self.R_coeff = R_coeff
         self.n_exp = n_exp
         self.H = H
         self.cfl = cfl
         self.Uc0 = Uc0
         self.Rh = Rh
+        self.saveAllDRh = saveAllDRh
 
         self.CONST = (-self.cfl/self.Uc0)*4.0*H*H
 
-        super(ParticleShiftingTechnique, self).__init__(dest, sources)
+        super(PST, self).__init__(dest, sources)
 
-    def initialize(self, d_idx, d_DX, d_DY, d_DRh):
+    def initialize(self, d_idx, d_DX, d_DY, d_DZ, d_DRh):
         d_DX[d_idx] = 0.0
         d_DY[d_idx] = 0.0
+        d_DZ[d_idx] = 0.0
         d_DRh[d_idx] = 0.0
 
     def loop_all(
-        self, d_idx, d_x, d_y, d_z, s_x, s_y, s_z, d_rho, s_rho, s_m, d_delta_p, 
-        d_DX, d_DY, d_DRh, d_lmda, s_lmda, SPH_KERNEL, NBRS, N_NBRS, d_L00, 
-        d_L01, d_L10, d_L11
+        self, d_idx, d_x, d_y, d_z, d_rho, d_delta_s, d_DX, d_DY, d_DZ, d_DRh, 
+        d_lmda, d_gradlmda, s_x, s_y, s_z, s_rho, s_m, SPH_KERNEL, NBRS, 
+        N_NBRS, 
     ):
-        i = declare('int')
+        i, n, j = declare('int', 3)
+        n = self.dim
+
         s_idx = declare('long')
         xij = declare('matrix(3)')
         dwij = declare('matrix(3)')
-        ni = declare('matrix(2)')
-        rij = 0.0
-        sum1 = 0.0
-        sum2 = 0.0
-        fac = 0.0
-        x = 0.0
-        y = 0.0
-        rh = 0.0
-        sum_nx = 0.0
-        sum_ny = 0.0
+        ni = declare('matrix(3)')
+        deltaR = declare('matrix(3)')
+        M = declare('matrix(3,3)')
+        res = declare('matrix(3)')
+
+        for i in range(3):
+            deltaR[j] = 0.0
 
         rhoi = d_rho[d_idx]
         lmdai = d_lmda[d_idx]
-        L00 = d_L00[d_idx]
-        L01 = d_L01[d_idx]
-        L10 = d_L10[d_idx]
-        L11 = d_L11[d_idx]
 
         if lmdai > 0.4:
             ##################
@@ -407,8 +391,8 @@ class ParticleShiftingTechnique(Equation):
             ##################
 
             # Calculate W(\delta p) value
-            delta_p = d_delta_p[d_idx]
-            w_delta_p = SPH_KERNEL.kernel(xij, delta_p, self.H)
+            delta_s = d_delta_s[d_idx]
+            w_delta_s = SPH_KERNEL.kernel(xij, delta_s, self.H)
 
             for i in range(N_NBRS):
                 s_idx = NBRS[i]
@@ -431,75 +415,72 @@ class ParticleShiftingTechnique(Equation):
                 ################################################################
 
                 # Calcuate fij
-                fij = self.R_coeff * pow( (wij/w_delta_p), self.n_exp )
+                fij = self.R_coeff * pow( (wij/w_delta_s), self.n_exp )
 
                 # Calcuate multiplicative factor
                 fac = (1.0 + fij)*( mj/(rhoi+rhoj) )
 
                 # Sum \delta r_i
-                sum1 += fac*dwij[0]
-                sum2 += fac*dwij[1]
+                for j in range(n):
+                    deltaR[j] += self.CONST*fac*dwij[j]
 
-                ################################################################
-                # Calculate n_i
-                ################################################################
-                lmdaj = s_lmda[s_idx]
-                
-                # Calcuate multiplicative factor
-                fac = (lmdai - lmdaj)*Vj
+            if lmdai > 0.75:
+                ##################
+                # Case - 3
+                ##################
+                rh = sqrt(deltaR[0]*deltaR[0] + deltaR[1]*deltaR[1] + deltaR[2]*deltaR[2])/self.H
 
-                # Sum n_i
-                sum_nx += (L00*dwij[0] + L01*dwij[1])*fac
-                sum_ny += (L10*dwij[0] + L11*dwij[1])*fac
-
-            # (x,y) components of \delta r_i
-            x = sum1*self.CONST
-            y = sum2*self.CONST
+                if rh > self.Rh:
+                    # Check Rh condition
+                    d_DX[d_idx] += 0.0
+                    d_DY[d_idx] += 0.0
+                    d_DZ[d_idx] += 0.0
+                    if self.saveAllDRh == True:    
+                        d_DRh[d_idx] += rh
+                else:
+                    d_DX[d_idx] += deltaR[0]
+                    d_DY[d_idx] += deltaR[1]
+                    d_DZ[d_idx] += deltaR[2]
+                    d_DRh[d_idx] += rh
             
-            if lmdai <= 0.75:
+            elif lmdai <= 0.75:
                 ##################
                 # Case - 2
                 ##################
 
-                ni_norm = sqrt(sum_nx*sum_nx + sum_ny*sum_ny)
-                
-                ni[0] = sum_nx/ni_norm
-                ni[1] = sum_ny/ni_norm
+                ni_norm = sqrt(d_gradlmda[0]*d_gradlmda[0] + d_gradlmda[1]*d_gradlmda[1] + d_gradlmda[2]*d_gradlmda[2])
 
-                # I - n_i \otimes n_i
-                M00 = 1.0 - ni[0]*ni[0]
-                M11 = 1.0 - ni[1]*ni[1]
-                M01 = -ni[0]*ni[1]
-                M10 = M01
+                for j in range(n):
+                    ni[j] = d_gradlmda[j]/ni_norm
+                    res[j] = 0.0
 
-                # Modified (x_new, y_new) values
-                x_new = M00*x + M01*y
-                y_new = M10*x + M11*y
+                for j in range(n):
+                    for k in range(n):
+                        M[j][k] = - ni[j]*ni[k]
+                        if j == k:
+                            M[j][k] = 1 + M[j][k]
 
-                rh = sqrt(x_new*x_new + y_new*y_new)/self.H
+
+                for j in range(n):
+                    for k in range(n):
+                        res[j] += M[j][k] * deltaR[k]
+
+                for j in range(n):
+                    deltaR[j] = res[j]
+
+                rh = sqrt(deltaR[0]*deltaR[0] + deltaR[1]*deltaR[1] + deltaR[2]*deltaR[2])/self.H
+
                 if rh > self.Rh:
                     # Check Rh condition
                     d_DX[d_idx] += 0.0
                     d_DY[d_idx] += 0.0
-                    d_DRh[d_idx] += 0.0
+                    d_DZ[d_idx] += 0.0
+                    if self.saveAllDRh == True:    
+                        d_DRh[d_idx] += rh
                 else:
-                    d_DX[d_idx] += x_new
-                    d_DY[d_idx] += y_new
-                    d_DRh[d_idx] += rh
-
-            else:
-                ##################
-                # Case - 3
-                ##################
-                rh = sqrt(x*x + y*y)/self.H
-                if rh > self.Rh:
-                    # Check Rh condition
-                    d_DX[d_idx] += 0.0
-                    d_DY[d_idx] += 0.0
-                    d_DRh[d_idx] += 0.0
-                else:
-                    d_DX[d_idx] += x
-                    d_DY[d_idx] += y
+                    d_DX[d_idx] += deltaR[0]
+                    d_DY[d_idx] += deltaR[1]
+                    d_DZ[d_idx] += deltaR[2]
                     d_DRh[d_idx] += rh
 
         else:
@@ -509,4 +490,5 @@ class ParticleShiftingTechnique(Equation):
 
             d_DX[d_idx] += 0.0
             d_DY[d_idx] += 0.0
+            d_DZ[d_idx] += 0.0
             d_DRh[d_idx] += 0.0

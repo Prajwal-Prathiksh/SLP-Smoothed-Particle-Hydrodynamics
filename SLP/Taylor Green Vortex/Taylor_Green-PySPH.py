@@ -104,7 +104,7 @@ class Taylor_Green(Application):
         dt_force = 0.25 * 1.0
 
         self.dt = min(dt_cfl, dt_viscous, dt_force)
-        self.tf = 2.0
+        self.tf = self.dt*200#2.0
 
         # Print parameters
         print('dx : ', self.dx)
@@ -137,18 +137,21 @@ class Taylor_Green(Application):
         )
         pa_fluid.add_property('m_mat', stride=9)
         pa_fluid.add_property('gradrho', stride=3)
-
+        pa_fluid.add_property('gradlmda', stride=3)
+        
         add_props = [
-            'lmda', 'delta_p', 'rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 'ax', 
-            'ay', 'az', 'DRH', 'L10', 'L00', 'DY', 'DX', 'L01', 'L11']
+            'lmda', 'delta_s', 'rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 
+            'ax', 'ay', 'az', 'DRh', 'DY', 'DX', 'DZ'
+        ]
         for i in add_props:
             pa_fluid.add_property(i)
 
         pa_fluid.set_output_arrays([
-            'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'm', 'h',
-            'pid', 'gid', 'tag', 'p', 'lmda', 'delta_p', 'DRH'
+            'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'm', 'h', 'pid', 'gid', 'tag', 
+            'p', 'lmda', 'delta_s', 'DRh',
         ])
         return [pa_fluid]
+
 
     def create_domain(self):
         '''
@@ -166,7 +169,7 @@ class Taylor_Green(Application):
         '''
         kernel = QuinticSpline(dim=2)
         
-        integrator = PECIntegrator(fluid = WCSPHStep())
+        integrator = EulerIntegrator(fluid=EulerStep())#PECIntegrator(fluid = WCSPHStep())
 
         solver = Solver(
             kernel=kernel, dim=2, integrator=integrator, dt=self.dt, tf=self.tf, 
@@ -222,18 +225,24 @@ class Taylor_Green(Application):
             min_iterations=0, pre=None, post=None)
         ]
         '''
+        from SLP.dpsph.equations import PST_PreStep_1, PST_PreStep_2, PST, AverageSpacing
         equations = [
             Group(equations=[
                 
                 IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
-                GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2)
+                GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2),
+                PST_PreStep_1(dest='fluid', sources=['fluid'], dim=2),
+                AverageSpacing(dest='fluid', sources=['fluid'], dim=2),
             
             ],real=False
             ),
 
             Group(equations=[
+
                 GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
                 ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+                PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2),
+                PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, Uc0=self.c0, Rh=0.5, saveAllDRh=True),
             
             ],real=True
             ),
