@@ -9,16 +9,20 @@ plt.rcParams.update({'font.size': 20})
 file_base = '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Taylor Green Vortex/PySPH-Testing/'
 
 
-sph_schm = ['01', '08', '03', '07']
+sph_schm = ['14', '16', '17', '18', '19']#['01', '08', '03', '07', '16', '17']
 
 sph_schm_legend = {
     '00':  r'$\delta$-SPH', '01': r'$\delta$-SPH, Prt', '02': 'DPSPH-SPH', 
     '03': 'DPSPH, Prt', '04': 'Case 1', '05': 'Case 2',
-    '06': r'$\delta^+$-SPH', '07': r'$\delta^+$-SPH, Prt', '08': 'EDAC, Prt',
+    '06': r'$\delta^+$-SPH', '07': r'$\delta^+$-SPH, Prt, QS, hdx=1', '08': 'EDAC, Prt',
     '09': 'EDAC', '10': r'$\delta^+$-SPH, Prt, TEOS', 
     '11': r'$\delta^+$-SPH, Prt, nx=30',
     '12': r'$\delta^+$-SPH, Prt, nx=30', '13': r'$\delta$-SPH, Prt, nx=30', 
-    '14': 'EDAC, Prt, nx=30',
+    '14': 'EDAC, Prt, nx=30', '15':  r'$\delta^+$-SPH, Prt, WQK, hdx=2',
+    '16': r'$\delta^+$-SPH, Prt, WQK, hdx=1.33', 
+    '17': r'$\delta^+$-SPH, Prt, WQK, hdx=1.33, DPS',
+    '18': r'$\delta^+$-SPH, nx=30, Prt, WQK, hdx=1.33, DPS',
+    '19': r'$\delta^+$-SPH, nx=30, Prt, WQK, hdx=1.33',
     '20': 'Check1', '21': 'Check2'
     }
 title_additional = ' | nx = 50 | Perturb = 0.2'
@@ -169,8 +173,9 @@ for schm in sph_schm:
     RT_x.append(sph_schm_legend[schm])
     
 # Plotting
-plt.rcParams.update({'font.size': 14})
-fig, ax = plt.subplots(figsize=(19.20,10.80))
+plt.rcParams.update({'font.size': 10})
+sz = (22,10.8)
+fig, ax = plt.subplots(figsize=sz)
 
 # Horizontal Bar Plot 
 ax.barh(RT_x, RT_y, height=0.4)

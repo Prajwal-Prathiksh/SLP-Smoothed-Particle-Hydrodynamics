@@ -379,7 +379,7 @@ class PST(Equation):
         M = declare('matrix(3,3)')
         res = declare('matrix(3)')
 
-        for i in range(3):
+        for j in range(3):
             deltaR[j] = 0.0
 
         rhoi = d_rho[d_idx]
@@ -390,7 +390,7 @@ class PST(Equation):
             # Case - 2 & 3
             ##################
 
-            # Calculate W(\delta p) value
+            # Calculate W(\delta s) value
             delta_s = d_delta_s[d_idx]
             w_delta_s = SPH_KERNEL.kernel(xij, delta_s, self.H)
 
@@ -399,7 +399,6 @@ class PST(Equation):
 
                 rhoj = s_rho[s_idx]
                 mj = s_m[s_idx]
-                Vj = mj/rhoj
 
                 xij[0] = d_x[d_idx] - s_x[s_idx]
                 xij[1] = d_y[d_idx] - s_y[s_idx]
@@ -415,10 +414,10 @@ class PST(Equation):
                 ################################################################
 
                 # Calcuate fij
-                fij = self.R_coeff * pow( (wij/w_delta_s), self.n_exp )
+                fij = self.R_coeff * pow((wij/w_delta_s), self.n_exp)
 
                 # Calcuate multiplicative factor
-                fac = (1.0 + fij)*( mj/(rhoi+rhoj) )
+                fac = (1.0 + fij)*(mj/(rhoi+rhoj))
 
                 # Sum \delta r_i
                 for j in range(n):
@@ -432,16 +431,16 @@ class PST(Equation):
 
                 if rh > self.Rh:
                     # Check Rh condition
-                    d_DX[d_idx] += 0.0
-                    d_DY[d_idx] += 0.0
-                    d_DZ[d_idx] += 0.0
+                    d_DX[d_idx] = 0.0
+                    d_DY[d_idx] = 0.0
+                    d_DZ[d_idx] = 0.0
                     if self.saveAllDRh == True:    
-                        d_DRh[d_idx] += rh
+                        d_DRh[d_idx] = rh
                 else:
-                    d_DX[d_idx] += deltaR[0]
-                    d_DY[d_idx] += deltaR[1]
-                    d_DZ[d_idx] += deltaR[2]
-                    d_DRh[d_idx] += rh
+                    d_DX[d_idx] = deltaR[0]
+                    d_DY[d_idx] = deltaR[1]
+                    d_DZ[d_idx] = deltaR[2]
+                    d_DRh[d_idx] = rh
             
             elif lmdai <= 0.75:
                 ##################
@@ -472,23 +471,23 @@ class PST(Equation):
 
                 if rh > self.Rh:
                     # Check Rh condition
-                    d_DX[d_idx] += 0.0
-                    d_DY[d_idx] += 0.0
-                    d_DZ[d_idx] += 0.0
+                    d_DX[d_idx] = 0.0
+                    d_DY[d_idx] = 0.0
+                    d_DZ[d_idx] = 0.0
                     if self.saveAllDRh == True:    
-                        d_DRh[d_idx] += rh
+                        d_DRh[d_idx] = rh
                 else:
-                    d_DX[d_idx] += deltaR[0]
-                    d_DY[d_idx] += deltaR[1]
-                    d_DZ[d_idx] += deltaR[2]
-                    d_DRh[d_idx] += rh
+                    d_DX[d_idx] = deltaR[0]
+                    d_DY[d_idx] = deltaR[1]
+                    d_DZ[d_idx] = deltaR[2]
+                    d_DRh[d_idx] = rh
 
         else:
             ##################
             # Case - 1
             ##################
 
-            d_DX[d_idx] += 0.0
-            d_DY[d_idx] += 0.0
-            d_DZ[d_idx] += 0.0
-            d_DRh[d_idx] += 0.0
+            d_DX[d_idx] = 0.0
+            d_DY[d_idx] = 0.0
+            d_DZ[d_idx] = 0.0
+            d_DRh[d_idx] = 0.0

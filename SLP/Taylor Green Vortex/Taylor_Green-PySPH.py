@@ -78,7 +78,7 @@ class Taylor_Green(Application):
         '''
 
         # Simulation Parameters
-        self.nx = 50
+        self.nx = 30
         self.perturb = 0.2 # Perturbation factor
         self.re = 100.0
         self.U = 1.0
@@ -86,7 +86,7 @@ class Taylor_Green(Application):
         self.rho0 = 1.0
 
         self.c0 = 10.0
-        self.hdx = 1.0
+        self.hdx = 1.33
 
         # Calculate simulation parameters
         self.nu = self.L * self.U/self.re
@@ -104,7 +104,8 @@ class Taylor_Green(Application):
         dt_force = 0.25 * 1.0
 
         self.dt = min(dt_cfl, dt_viscous, dt_force)
-        self.tf = self.dt*200#2.0
+        self.tf = 2.0
+        #self.tf = self.dt*70
 
         # Print parameters
         print('dx : ', self.dx)
@@ -167,9 +168,10 @@ class Taylor_Green(Application):
         '''
         Define solver
         '''
-        kernel = QuinticSpline(dim=2)
+        kernel = WendlandQuintic(dim=2) #QuinticSpline(dim=2)
         
-        integrator = EulerIntegrator(fluid=EulerStep())#PECIntegrator(fluid = WCSPHStep())
+        from SLP.dpsph.integrator import DPSPHStep
+        integrator = PECIntegrator(fluid = WCSPHStep())
 
         solver = Solver(
             kernel=kernel, dim=2, integrator=integrator, dt=self.dt, tf=self.tf, 
@@ -242,7 +244,10 @@ class Taylor_Green(Application):
                 GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
                 ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
                 PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2),
-                PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, Uc0=self.c0, Rh=0.5, saveAllDRh=True),
+                PST(
+                    dest='fluid', sources=['fluid'], dim=2, H=self.h0, 
+                    Uc0=self.c0, Rh=0.05, saveAllDRh=False
+                ),
             
             ],real=True
             ),
