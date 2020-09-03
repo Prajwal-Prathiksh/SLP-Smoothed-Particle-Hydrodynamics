@@ -115,10 +115,10 @@ class EllipticalDrop(Application):
         '''
 
         # Simulation Parameters
-        self.nx = 25.0
+        self.nx = 40.0
         self.co = 1400.0
         self.ro = 1.0
-        self.hdx = 1.3
+        self.hdx = 1.33
         self.dx = 0.025
         self.alpha = 0.1
         self.dx = 1.0/self.nx
@@ -133,7 +133,9 @@ class EllipticalDrop(Application):
         self.mu = ro*self.alpha*hdx*dx*co/8.0
         self.nu = self.mu / self.rho0
 
-        self.tf = self.dt*40#0.0076
+        self.tf = 0.0076
+        #self.tf = self.dt*80
+        
 
     def create_particles(self):
         """Create the circular patch of fluid."""
@@ -188,9 +190,13 @@ class EllipticalDrop(Application):
         Define solver
         '''
 
-        kernel = QuinticSpline(dim=2)#Gaussian(dim=2)
+        kernel = WendlandQuintic(dim=2)
         
-        integrator = EPECIntegrator(fluid = WCSPHStep())
+        #integrator = PECIntegrator(fluid = WCSPHStep())
+        from SLP.dpsph.integrator import DPSPHStep
+        integrator = PECIntegrator(fluid = DPSPHStep())
+
+
         solver = Solver(
             kernel=kernel, dim=2, integrator=integrator, dt=self.dt, tf=self.tf, 
             pfreq=30
@@ -246,7 +252,7 @@ class EllipticalDrop(Application):
                 GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
                 ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
                 PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2),
-                PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, Uc0=self.c0, Rh=0.5),
+                PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, Uc0=self.c0, Rh=0.05, saveAllDRh=False),
             
             ],real=True
             ),

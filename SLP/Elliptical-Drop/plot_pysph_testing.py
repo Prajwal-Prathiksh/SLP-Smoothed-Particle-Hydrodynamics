@@ -54,11 +54,12 @@ def exact_solution(tf=0.0075, dt=1e-6, n=101):
 
 file_base = '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Elliptical-Drop/PySPH-Testing'
 
-sph_schm = ['00', '01', '02', '03', '04']
+sph_schm = ['00', '01', '02', '04', '05', '06']
 
 sph_schm_legend = {
     '00': 'WCSPH', '01': 'IISPH', '02': r'$\delta$-SPH', '03': r'$\delta^+$-SPH, GS',
-    '04': r'$\delta^+$-SPH, QS'
+    '04': r'$\delta^+$-SPH, QS', '05': r'$\delta^+$-SPH, WQK', 
+    '06': r'$\delta^+$-SPH, WQK, PST'
 }
 title_additional = ''
 savefig_additional = ''
@@ -66,7 +67,7 @@ savefig_additional = ''
 ################################################################################
 ## Plot KE-History
 ################################################################################
-sz = (14.40,10.80)
+sz = (19.20,10.80)
 plt.figure(figsize=sz)
 
 for schm in sph_schm:        
