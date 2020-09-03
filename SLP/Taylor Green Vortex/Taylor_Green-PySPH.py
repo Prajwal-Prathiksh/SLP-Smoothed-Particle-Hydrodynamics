@@ -105,7 +105,7 @@ class Taylor_Green(Application):
 
         self.dt = min(dt_cfl, dt_viscous, dt_force)
         self.tf = 2.0
-        #self.tf = self.dt*70
+        #self.tf = self.dt*400
 
         # Print parameters
         print('dx : ', self.dx)
@@ -142,7 +142,7 @@ class Taylor_Green(Application):
         
         add_props = [
             'lmda', 'delta_s', 'rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 
-            'ax', 'ay', 'az', 'DRh', 'DY', 'DX', 'DZ'
+            'ax', 'ay', 'az', 'DRh', 'DY', 'DX', 'DZ',
         ]
         for i in add_props:
             pa_fluid.add_property(i)
@@ -233,7 +233,7 @@ class Taylor_Green(Application):
                 
                 IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
                 GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2),
-                PST_PreStep_1(dest='fluid', sources=['fluid'], dim=2),
+                #PST_PreStep_1(dest='fluid', sources=['fluid'], dim=2),
                 AverageSpacing(dest='fluid', sources=['fluid'], dim=2),
             
             ],real=False
@@ -243,11 +243,8 @@ class Taylor_Green(Application):
 
                 GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
                 ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
-                PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2),
-                PST(
-                    dest='fluid', sources=['fluid'], dim=2, H=self.h0, 
-                    Uc0=self.c0, Rh=0.05, saveAllDRh=False
-                ),
+                #PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2, H=self.h0),
+                #PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, Uc0=self.c0, Rh=0.075, saveAllDRh=False),
             
             ],real=True
             ),

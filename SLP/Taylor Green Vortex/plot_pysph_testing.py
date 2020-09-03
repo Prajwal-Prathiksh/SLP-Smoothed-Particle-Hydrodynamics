@@ -9,7 +9,8 @@ plt.rcParams.update({'font.size': 20})
 file_base = '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Taylor Green Vortex/PySPH-Testing/'
 
 
-sph_schm = ['14', '16', '17', '18', '19']#['01', '08', '03', '07', '16', '17']
+sph_schm = ['08', '03', '16', '17', '14', '18', '19']
+sph_schm = ['14', '18', '19', '17', '08']
 
 sph_schm_legend = {
     '00':  r'$\delta$-SPH', '01': r'$\delta$-SPH, Prt', '02': 'DPSPH-SPH', 
@@ -20,8 +21,8 @@ sph_schm_legend = {
     '12': r'$\delta^+$-SPH, Prt, nx=30', '13': r'$\delta$-SPH, Prt, nx=30', 
     '14': 'EDAC, Prt, nx=30', '15':  r'$\delta^+$-SPH, Prt, WQK, hdx=2',
     '16': r'$\delta^+$-SPH, Prt, WQK, hdx=1.33', 
-    '17': r'$\delta^+$-SPH, Prt, WQK, hdx=1.33, DPS',
-    '18': r'$\delta^+$-SPH, nx=30, Prt, WQK, hdx=1.33, DPS',
+    '17': r'$\delta^+$-SPH, Prt, WQK, hdx=1.33, PST',
+    '18': r'$\delta^+$-SPH, nx=30, Prt, WQK, hdx=1.33, PST',
     '19': r'$\delta^+$-SPH, nx=30, Prt, WQK, hdx=1.33',
     '20': 'Check1', '21': 'Check2'
     }

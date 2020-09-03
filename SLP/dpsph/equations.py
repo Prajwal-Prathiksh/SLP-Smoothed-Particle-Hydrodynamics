@@ -203,7 +203,7 @@ class PST_PreStep_1(Equation):
 
 
 class PST_PreStep_2(Equation):
-    def __init__(self, dest, sources, dim):
+    def __init__(self, dest, sources, dim, H):
         r'''
             Parameters:
             -----------
@@ -213,26 +213,42 @@ class PST_PreStep_2(Equation):
         '''       
             
         self.dim = dim
+        self.H = H
         super(PST_PreStep_2, self).__init__(dest, sources)
 
     def initialize(self, d_idx, d_gradlmda):
         d_gradlmda[d_idx*3 + 0] = 0.0
         d_gradlmda[d_idx*3 + 1] = 0.0
         d_gradlmda[d_idx*3 + 2] = 0.0
+    def loop_all(
+        self, d_idx, d_x, d_y, d_z, d_lmda, d_gradlmda, s_x, s_y, s_z, s_rho, 
+        s_m, s_lmda, SPH_KERNEL, NBRS, N_NBRS
+    ):
+        n, i, j = declare('int', 3)
+        n = self.dim
+        s_idx = declare('long')
+        xij = declare('matrix(3)')
+        dwij = declare('matrix(3)')
 
-    def loop(self, d_idx, s_idx, d_lmda, d_gradlmda, s_rho, s_m, s_lmda, DWIJ):
-
-        Vj = s_m[s_idx]/s_rho[s_idx]
         lmdai = d_lmda[d_idx]
-        lmdaj = s_lmda[s_idx]
+        for i in range(N_NBRS):
+            s_idx = NBRS[i]
 
-        lmdaij = (lmdai - lmdaj)
+            Vj = s_m[s_idx]/s_rho[s_idx]
+            lmdaj = s_lmda[s_idx]
 
-        # renormalized density of eqn (5a)
-        d_gradlmda[d_idx*3 + 0] += lmdaij * DWIJ[0] * Vj
-        d_gradlmda[d_idx*3 + 1] += lmdaij * DWIJ[1] * Vj
-        d_gradlmda[d_idx*3 + 2] += lmdaij * DWIJ[2] * Vj
+            lmdaij = (lmdai - lmdaj)
+            xij[0] = d_x[d_idx] - s_x[s_idx]
+            xij[1] = d_y[d_idx] - s_y[s_idx]
+            xij[2] = d_z[d_idx] - s_z[s_idx]
+            rij = sqrt(xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2])
 
+            # Calculate Kernel gradient value
+            SPH_KERNEL.gradient(xij, rij, self.H, dwij)
+
+            # Grad Lambda value
+            for j in range(n):
+                d_gradlmda[d_idx*3 + j] += lmdaij * dwij[j] * Vj
 
 class PST(Equation):
     r"""*Particle-Shifting Technique employed in
@@ -366,21 +382,22 @@ class PST(Equation):
     def loop_all(
         self, d_idx, d_x, d_y, d_z, d_rho, d_delta_s, d_DX, d_DY, d_DZ, d_DRh, 
         d_lmda, d_gradlmda, s_x, s_y, s_z, s_rho, s_m, SPH_KERNEL, NBRS, 
-        N_NBRS, 
+        N_NBRS, EPS
     ):
-        i, n, j = declare('int', 3)
+        n, i, j, k = declare('int', 4)
         n = self.dim
-
         s_idx = declare('long')
         xij = declare('matrix(3)')
         dwij = declare('matrix(3)')
         ni = declare('matrix(3)')
         deltaR = declare('matrix(3)')
-        M = declare('matrix(3,3)')
         res = declare('matrix(3)')
+        gradlmda_i = declare('matrix(3)')
+        M = declare('matrix(3,3)')
 
         for j in range(3):
             deltaR[j] = 0.0
+            gradlmda_i[j] = d_gradlmda[d_idx*3 + j]
 
         rhoi = d_rho[d_idx]
         lmdai = d_lmda[d_idx]
@@ -392,7 +409,7 @@ class PST(Equation):
 
             # Calculate W(\delta s) value
             delta_s = d_delta_s[d_idx]
-            w_delta_s = SPH_KERNEL.kernel(xij, delta_s, self.H)
+            w_delta_s = SPH_KERNEL.kernel(xij, delta_s, self.H) 
 
             for i in range(N_NBRS):
                 s_idx = NBRS[i]
@@ -414,10 +431,10 @@ class PST(Equation):
                 ################################################################
 
                 # Calcuate fij
-                fij = self.R_coeff * pow((wij/w_delta_s), self.n_exp)
+                fij = self.R_coeff * pow((wij/(EPS+w_delta_s)), self.n_exp)
 
                 # Calcuate multiplicative factor
-                fac = (1.0 + fij)*(mj/(rhoi+rhoj))
+                fac = (1.0 + fij)*(mj/(rhoi+rhoj+EPS))
 
                 # Sum \delta r_i
                 for j in range(n):
@@ -431,9 +448,9 @@ class PST(Equation):
 
                 if rh > self.Rh:
                     # Check Rh condition
-                    d_DX[d_idx] = 0.0
-                    d_DY[d_idx] = 0.0
-                    d_DZ[d_idx] = 0.0
+                    #d_DX[d_idx] = 0.0
+                    #d_DY[d_idx] = 0.0
+                    #d_DZ[d_idx] = 0.0
                     if self.saveAllDRh == True:    
                         d_DRh[d_idx] = rh
                 else:
@@ -447,17 +464,17 @@ class PST(Equation):
                 # Case - 2
                 ##################
 
-                ni_norm = sqrt(d_gradlmda[0]*d_gradlmda[0] + d_gradlmda[1]*d_gradlmda[1] + d_gradlmda[2]*d_gradlmda[2])
+                ni_norm = sqrt(gradlmda_i[0]*gradlmda_i[0] + gradlmda_i[1]*gradlmda_i[1] + gradlmda_i[2]*gradlmda_i[2])
 
                 for j in range(n):
-                    ni[j] = d_gradlmda[j]/ni_norm
+                    ni[j] = gradlmda_i[j] / (ni_norm + EPS)
                     res[j] = 0.0
 
                 for j in range(n):
                     for k in range(n):
                         M[j][k] = - ni[j]*ni[k]
                         if j == k:
-                            M[j][k] = 1 + M[j][k]
+                            M[j][k] += 1.0
 
 
                 for j in range(n):
@@ -471,11 +488,11 @@ class PST(Equation):
 
                 if rh > self.Rh:
                     # Check Rh condition
-                    d_DX[d_idx] = 0.0
-                    d_DY[d_idx] = 0.0
-                    d_DZ[d_idx] = 0.0
+                    #d_DX[d_idx] = 0.0
+                    #d_DY[d_idx] = 0.0
+                    #d_DZ[d_idx] = 0.0
                     if self.saveAllDRh == True:    
-                        d_DRh[d_idx] = rh
+                        d_DRh[d_idx] = ni_norm#rh
                 else:
                     d_DX[d_idx] = deltaR[0]
                     d_DY[d_idx] = deltaR[1]
