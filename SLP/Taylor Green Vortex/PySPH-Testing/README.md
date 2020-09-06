@@ -2,44 +2,22 @@
 
 ## PySPH Testing
 
-* 00 - `pysph run taylor_green --openmp --nx 50 --pfreq 100 --scheme wcsph --delta-sph`
-
-
-* 01 - `pysph run taylor_green --openmp --nx 50 --pfreq 100 --scheme wcsph --delta-sph --perturb 0.2`
-
-* 02 - `Taylor_Green_3.py --openmp --pfreq 100` - nx = 50 | perturb = 0
-
-* 03 - `Taylor_Green_3.py --openmp --pfreq 100` - nx = 50 | perturb = 0.2
-
-* 04 - `Taylor_Green-PySPH.py --openmp --pfreq 100` - nx = 50 | perturb = 0 | c0 = 10.0 | IsothermalEOS, Spatial_Acceleration
-
-* 05 - `Taylor_Green-PySPH.py --openmp --pfreq 100` - nx = 50 | perturb = 0 | c0 = 10.0 | IsothermalEOS, Spatial_Acceleration, LaminarViscosityDeltaSPHPreStep | QuinticSpline | PECIntegrator
-
-* 06 - `Taylor_Green-PySPH.py --openmp --pfreq 100` - nx = 50 | perturb = 0 | c0 = 10.0 | IsothermalEOS, Spatial_Acceleration, LaminarViscosityDeltaSPHPreStep - Correct Order | QuinticSpline | PECIntegrator
-
-* 07 - `Taylor_Green-PySPH.py --openmp --pfreq 100` - nx = 50 | perturb = 0.2 | c0 = 10.0 | IsothermalEOS, Spatial_Acceleration, LaminarViscosityDeltaSPHPreStep - Correct Order | QuinticSpline | PECIntegrator
-
-* 08 - `pysph run taylor_green --openmp --nx 50 --pfreq 100 --scheme edac --perturb 0.2`
-
-* 09 - `pysph run taylor_green --openmp --nx 50 --pfreq 100 --scheme edac `
-
-* 10 - `Taylor_Green-PySPH.py --openmp --pfreq 100` - nx = 50 | perturb = 0.2 | c0 = 10.0 | TaitEOS, Spatial_Acceleration, LaminarViscosityDeltaSPHPreStep - Correct Order | QuinticSpline | PECIntegrator
-
-* 11 - `Taylor_Green-PySPH.py --openmp --pfreq 100` - nx = 30 | perturb = 0.2 | c0 = 10.0 | IsothermalEOS, Spatial_Acceleration, LaminarViscosityDeltaSPHPreStep - Correct Order | QuinticSpline | PECIntegrator
-
-* 12 - `Taylor_Green_3.py --openmp --pfreq 100` - nx = 30 | perturb = 0.2
-
-* 13 - `pysph run taylor_green --openmp --nx 30 --pfreq 100 --scheme wcsph --delta-sph --perturb 0.2`
-
-* 14 - `pysph run taylor_green --openmp --nx 30 --pfreq 100 --scheme edac --perturb 0.2`
-
-* 15 - `Taylor_Green-PySPH.py --openmp --pfreq 100` - nx = 30 | perturb = 0.2 | c0 = 10.0 | IsothermalEOS, Spatial_Acceleration, LaminarViscosityDeltaSPHPreStep - Correct Order | WendlandQuintic, hdx = 2 | PECIntegrator
-
-* 16- `Taylor_Green-PySPH.py --openmp --pfreq 100` - nx = 30 | perturb = 0.2 | c0 = 10.0 | IsothermalEOS, Spatial_Acceleration, LaminarViscosityDeltaSPHPreStep - Correct Order | WendlandQuintic, hdx = 1.33 | PECIntegrator
-
-* 17- `Taylor_Green-PySPH.py --openmp --pfreq 100` - nx = 30 | perturb = 0.2 | c0 = 10.0 | IsothermalEOS, Spatial_Acceleration, LaminarViscosityDeltaSPHPreStep - Correct Order | WendlandQuintic, hdx = 1.33 | PECIntegrator(fluid = DPSPHStep())
-
-
-
-
-* check - **Same as 00**    
+| Simulation Number 	|      Scheme      	|  PST  	|      Kernel     	| nx 	| perturb 	|  hdx 	| PST_Rh 	|
+|:-----------------:	|:----------------:	|:-----:	|:---------------:	|:--:	|:-------:	|:----:	|:------:	|
+|         00        	| $\delta^+$ - SPH 	|  TRUE 	| WendlandQuintic 	| 30 	|   0.2   	| 1.33 	|  0.05  	|
+|         01        	| $\delta^+$ - SPH 	|  TRUE 	| WendlandQuintic 	| 50 	|   0.2   	| 1.33 	|  0.05  	|
+|         02        	| $\delta^+$ - SPH 	|  TRUE 	| WendlandQuintic 	| 70 	|   0.2   	| 1.33 	|  0.05  	|
+|         03        	| $\delta^+$ - SPH 	|  TRUE 	| WendlandQuintic 	| 90 	|   0.2   	| 1.33 	|  0.05  	|
+|         04        	| $\delta^+$ - SPH 	|  TRUE 	| WendlandQuintic 	| 50 	|   0.2   	| 1.33 	|   0.1  	|
+|         05        	| $\delta^+$ - SPH 	|  TRUE 	| WendlandQuintic 	| 50 	|   0.2   	| 1.33 	|   0.2  	|
+|         06        	| $\delta^+$ - SPH 	|  TRUE 	| WendlandQuintic 	| 50 	|   0.2   	| 1.33 	|   0.5  	|
+|         07        	| $\delta^+$ - SPH 	|  TRUE 	| WendlandQuintic 	| 50 	|   0.2   	| 1.33 	|    1   	|
+|         08        	| $\delta^+$ - SPH 	|  TRUE 	| WendlandQuintic 	| 50 	|   0.2   	|   1  	|  0.05  	|
+|         09        	| $\delta^+$ - SPH 	|  TRUE 	| WendlandQuintic 	| 50 	|   0.2   	|  1.5 	|  0.05  	|
+|         10        	| $\delta^+$ - SPH 	|  TRUE 	| WendlandQuintic 	| 50 	|   0.2   	|   2  	|  0.05  	|
+|         11        	| $\delta^+$ - SPH 	|  TRUE 	|  QuinticSpline  	| 50 	|   0.2   	|  1.5 	|  0.05  	|
+|         12        	| $\delta^+$ - SPH 	|  TRUE 	|     Gaussian    	| 50 	|   0.2   	|  1.5 	|  0.05  	|
+|         13        	| $\delta^+$ - SPH 	|  TRUE 	|   CubicSpline   	| 50 	|   0.2   	|  1.5 	|  0.05  	|
+|         14        	| $\delta^+$ - SPH 	| FALSE 	| WendlandQuintic 	| 50 	|   0.2   	|  1.5 	|   ///  	|
+|         15        	|  $\delta$ - SPH  	| FALSE 	|  QuinticSpline  	| 50 	|   0.2   	|   1  	|   ///  	|
+|         16        	|       EDAC       	| FALSE 	|  QuinticSpline  	| 50 	|   0.2   	|   1  	|   ///  	|
