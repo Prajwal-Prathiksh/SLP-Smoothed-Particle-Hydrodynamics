@@ -448,9 +448,9 @@ class PST(Equation):
 
                 if rh > self.Rh:
                     # Check Rh condition
-                    #d_DX[d_idx] = 0.0
-                    #d_DY[d_idx] = 0.0
-                    #d_DZ[d_idx] = 0.0
+                    d_DX[d_idx] = 0.0
+                    d_DY[d_idx] = 0.0
+                    d_DZ[d_idx] = 0.0
                     if self.saveAllDRh == True:    
                         d_DRh[d_idx] = rh
                 else:
@@ -488,11 +488,11 @@ class PST(Equation):
 
                 if rh > self.Rh:
                     # Check Rh condition
-                    #d_DX[d_idx] = 0.0
-                    #d_DY[d_idx] = 0.0
-                    #d_DZ[d_idx] = 0.0
+                    d_DX[d_idx] = 0.0
+                    d_DY[d_idx] = 0.0
+                    d_DZ[d_idx] = 0.0
                     if self.saveAllDRh == True:    
-                        d_DRh[d_idx] = ni_norm#rh
+                        d_DRh[d_idx] = rh
                 else:
                     d_DX[d_idx] = deltaR[0]
                     d_DY[d_idx] = deltaR[1]
