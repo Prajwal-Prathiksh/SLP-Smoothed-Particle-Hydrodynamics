@@ -1,49 +1,17 @@
+import ipywidgets as widgets
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pysph.solver.utils import load, iter_output, get_files
+import pandas as pd
 sns.set_style("ticks", {'axes.facecolor': '#EAEAF2', 'axes.grid': True})
+file_base = '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Taylor Green Vortex/PySPH-Testing/'
+
+
 global savefig_additional 
 global figTitle1
 global figTitle2
 global figTitle3
-
-
-file_base = '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics/SLP/Taylor Green Vortex/PySPH-Testing/'
-sph_schm_legend = {
-    '00': 'nx = 30',
-    '01': 'Rh = 0.05', #'hdx = 1.33', #'nx = 50',  
-    '02': 'nx = 70',
-    '03': 'nx = 90',
-    '04': 'Rh = 0.1',
-    '05': 'Rh = 0.2',
-    '06': 'Rh = 0.5',
-    '07': 'Rh = 1.0',
-    '08': 'hdx = 1.0',
-    '09': 'WendlandQuintic',#'hdx = 1.5', #r'$\delta^+$ - SPH',  
-    '10': 'hdx = 2.0',
-    '11': 'QuinticSpline',
-    '12': 'Gaussian',
-    '13': 'CubicSpline',
-    '14': r'$\delta^+$ - SPH (No PST)',
-    '15': r'$\delta$ - SPH',
-    '16': 'EDAC',
-
-}
-
-sph_schm = ['09', '11', '12', '13']
-vl = [0.05, 0.05, 0.05, 0.05]
-#vl = [0.05, 0.1, 0.2, 0.5]
-name = 'scheme'
-
-
-##############
-savefig_additional = '_' + name
-temp = ' | Variation with (' + name + ')'
-figTitle1 = 'Taylor-Green Vortex - Error Plot' + temp
-figtitle2 = 'Taylor-Green Vortex - Runtimes' + temp
-figTitle3 = r'Taylor-Green Vortex - Histogram $\dfrac{|\delta \mathbf{\hat{r}_i}|}{\Delta x_i}$' + temp
-##############
 
 def extract_RT(file_loc):
 
@@ -133,7 +101,7 @@ def custom_plot1(sph_schm, sph_schm_legend, sz=(19.2,14.4), save=False):
             rt = r' {' + str(round(temp, 2)) + r'$\% \uparrow$}'
         labels[i] = labels[i] + rt
 
-    fig.legend(lines, labels, loc = 'lower center', ncol=n, prop={'size': 16}, title=r'Legend {$\Delta \%$ Runtime}')
+    fig.legend(lines, labels, loc = 'lower center', ncol=n, prop={'size': 'medium'}, title=r'Legend {$\Delta \%$ Runtime}')
 
     if save == True:
         tle = file_base + '/TGV_error_plot' + savefig_additional + '.png' 
@@ -190,7 +158,7 @@ def jointplot_semilogx(x, y, xlabel, ylabel, title, save = False, **plot_kwargs)
     
     XT = np.arange(np.floor(min(temp)), np.ceil(max(temp)), 1)
     g.ax_joint.xaxis.set_ticks(XT)
-    labels = np.round(10**XT, 2)
+    labels = np.round(10**XT, 6)
     g.ax_joint.xaxis.set_ticklabels(labels, minor=False);
     g.set_axis_labels(xlabel, ylabel, fontsize=16)
 
@@ -217,6 +185,9 @@ def custom_plot2(sph_schm, sph_schm_legend, sz=(19.2,14.4), save=False):
             tle = file_base + '/TGV_jointplot-' + str(cnt) + savefig_additional + '.png' 
             cnt += 1
             jointplot_semilogx(y=lmda, x=DRh, ylabel=ylabel, xlabel=xlabel, title=title, save=tle, kind='reg', height=8)
+
+        else:
+            jointplot_semilogx(y=lmda, x=DRh, ylabel=ylabel, xlabel=xlabel, title=title, save=save, kind='reg', height=8)
 
 def plot_loghist(x, bins = 20, ax = None, **plot_kwargs):
     if ax == None:
@@ -306,10 +277,10 @@ def custom_plot4(sph_schm, sph_schm_legend, bins = 20, sz=(19.2,14.4), save=Fals
             leg += ' {' + str(r) + '%}'
             axs[1,i%2].set_title(leg, fontsize=20)
         i += 1
-    fig.suptitle(figTitle1, fontsize=24)
+    fig.suptitle(figTitle3, fontsize=24)
 
     fig.tight_layout()
-    fig.subplots_adjust(top=0.9)
+    fig.subplots_adjust(top=0.85)
 
     if vlines != None:
         axs[0,0].axvline(x=vlines[0],c='k', linestyle='--')
@@ -321,13 +292,54 @@ def custom_plot4(sph_schm, sph_schm_legend, bins = 20, sz=(19.2,14.4), save=Fals
         tle = file_base + '/TGV_DRH_plot' + savefig_additional + '.png' 
         fig.savefig(tle, dpi=400)
 
+df = pd.read_csv(file_base + 'SPH Scheme - Test - TGV.csv')
+
+sph_schm_legend = {
+    '00': 'nx = 30',
+    '01': 'nx = 50', #'Rh = 0.05', #'hdx = 1.33', 
+    '02': 'nx = 70',
+    '03': 'nx = 90',
+    '04': 'Rh = 0.1',
+    '05': 'Rh = 0.2',
+    '06': 'R_coeff = 1e-5',
+    '07': 'R_coeff = 1e-3',
+    '08': 'hdx = 1.0',
+    '09': r'$\delta^+$ - SPH', #'n_exp = 4', #'R_coeff = 1e-4', #'WendlandQuintic | hdx = 1.5', #'hdx = 1.5', 
+    '10': 'hdx = 2.0',
+    '11': 'QuinticSpline | hdx = 1.5',
+    '12': 'Gaussian | hdx = 1.5',
+    '13': 'CubicSpline | hdx = 1.5',
+    '14': r'$\delta^+$ - SPH (No PST)',
+    '15': r'$\delta$ - SPH',
+    '16': 'EDAC',
+    '17': 'R_coeff = 1e-2',
+    '18': 'R_coeff = 5e-5',
+    '19': 'R_coeff = 5e-4',
+    '20': 'R_coeff = 2e-5',
+    '21': 'R_coeff = 2e-4',
+    '22': 'n_exp = 3',
+    '23': 'n_exp = 2',
+    '24': 'n_exp = 6',
+    '25': r'$\delta^+$ - SPH (CS, n = 3, R = 1e-4)',
+
+}
+
+sph_schm = ['16','14', '09', '25',]
+vl = [0.05, 0.05, 0.05, 0.05]
+#vl = [0.05, 0.1, 0.2, 0.5]
+name = 'scheme-2'    
 
 
-custom_plot1(sph_schm, sph_schm_legend, save=True)
-#run_time_plot(sph_schm, sph_schm_legend, save=True)
-#custom_plot2(sph_schm, sph_schm_legend, save=True)
-#custom_plot3(sph_schm, sph_schm_legend, bins=25,save=True)
-custom_plot4(sph_schm, sph_schm_legend, vlines=vl, save=True)
+##############
+savefig_additional = '_' + name
+temp = ' | Variation with (' + name + ')'
+figTitle1 = 'Taylor-Green Vortex - Error Plot' + temp
+figtitle2 = 'Taylor-Green Vortex - Runtimes' + temp
+figTitle3 = r'Taylor-Green Vortex - Histogram $\dfrac{|\delta \mathbf{\hat{r}_i}|}{\Delta x_i}$' + temp
+##############
 
-
-
+custom_plot1(sph_schm, sph_schm_legend, save=False, sz=(14.4,10.8))
+custom_plot4(sph_schm, sph_schm_legend, vlines=vl, save=False, sz=(14.4, 10.8))
+#run_time_plot(sph_schm, sph_schm_legend, save=False)
+#custom_plot2(sph_schm, sph_schm_legend, save=False)
+#custom_plot3(sph_schm, sph_schm_legend, bins=25,save=False)

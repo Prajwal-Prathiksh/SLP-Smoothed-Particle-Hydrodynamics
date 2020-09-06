@@ -89,7 +89,7 @@ class Taylor_Green(Application):
         self.rho0 = 1.0
 
         self.c0 = 10.0
-        self.hdx = 1.5
+        self.hdx = 2.0
 
         # Calculate simulation parameters
         self.nu = self.L * self.U/self.re
@@ -111,6 +111,8 @@ class Taylor_Green(Application):
 
         self.PST = True
         self.PSR_Rh = 0.05
+        self.PST_R_coeff = 1e-4
+        self.PST_n_exp = 3.0
 
         # Print parameters
         print('dx : ', self.dx)
@@ -156,8 +158,8 @@ class Taylor_Green(Application):
             'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'm', 'h', 'pid', 'gid', 'tag', 
             'p', 'lmda', 'delta_s', 'DRh',
         ])
+        pa_fluid.lmda[:] = 1.0
         return [pa_fluid]
-
 
     def create_domain(self):
         '''
@@ -173,7 +175,7 @@ class Taylor_Green(Application):
         '''
         Define solver
         '''
-        kernel =  WendlandQuintic(dim=2) #Gaussian(dim=2) #QuinticSpline(dim=2) #CubicSpline(dim=2)
+        kernel = CubicSpline(dim=2) #WendlandQuintic(dim=2) #Gaussian(dim=2) #QuinticSpline(dim=2) 
         
         if self.PST == False:
             integrator = PECIntegrator(fluid = WCSPHStep())
@@ -232,7 +234,7 @@ class Taylor_Green(Application):
                     GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
                     ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
                     PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2, H=self.h0),
-                    PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, Uc0=self.c0, Rh=self.PSR_Rh, saveAllDRh=True),            
+                    PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, Uc0=self.c0, Rh=self.PSR_Rh, saveAllDRh=True, R_coeff=self.PST_R_coeff, n_exp=self.PST_n_exp),            
                 ],real=True
                 ),
 
@@ -368,6 +370,13 @@ class Taylor_Green(Application):
         plt.ylabel(r'$L_1$ error for $p$')
         fig = os.path.join(self.output_dir, "p_l1_error.png")
         plt.savefig(fig, dpi=300)
+
+    def customize_output(self):
+        self._mayavi_config('''
+        b = particle_arrays['fluid']
+        b.scalar = 'vmag'
+        ''')
+
 
 ################################################################################
 # Main Code
