@@ -118,13 +118,12 @@ class EllipticalDrop(Application):
         '''
 
         # Simulation Parameters
-        self.nx = 40.0
+        self.nx = 40
         self.co = 1400.0
         self.ro = 1.0
 
-        self.hdx = 1.33
+        self.hdx = 1.5
 
-        self.dx = 0.025
         self.alpha = 0.1
         self.dx = 1.0/self.nx
         self.rho0 = self.ro
@@ -139,12 +138,12 @@ class EllipticalDrop(Application):
         self.nu = self.mu / self.rho0
 
         self.tf = 0.0076
-        #self.tf = self.dt*80
 
         self.PST = True
         self.PSR_Rh = 0.05
         self.PST_R_coeff = 1e-4
-        self.PST_n_exp = 3.0        
+        self.PST_n_exp = 4.0  
+        self.PST_Uc0 = 1400.0
 
     def create_particles(self):
         """Create the circular patch of fluid."""
@@ -199,7 +198,7 @@ class EllipticalDrop(Application):
         Define solver
         '''
 
-        kernel = CubicSpline(dim=2) #WendlandQuintic(dim=2) #Gaussian(dim=2) #QuinticSpline(dim=2) 
+        kernel = CubicSpline(dim=2) #Gaussian(dim=2) #QuinticSpline(dim=2) #WendlandQuintic(dim=2) )  
         
         if self.PST == False:
             integrator = PECIntegrator(fluid = WCSPHStep())
@@ -235,9 +234,9 @@ class EllipticalDrop(Application):
                 Group(equations=[
                     ContinuityEquation(dest='fluid', sources=['fluid']),                 
                     ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1), 
-                    #MomentumEquation(dest='fluid', sources=['fluid'], c0=self.c0, alpha=0.0, beta=0.0, gx=0.0, gy=0.0, gz=0.0, tensile_correction=False), 
+                    MomentumEquation(dest='fluid', sources=['fluid'], c0=self.c0, alpha=0.0, beta=0.0, gx=0.0, gy=0.0, gz=0.0, tensile_correction=False), 
                     #MomentumEquationDeltaSPH(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, alpha=0.0), 
-                    LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+                    #LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
                     LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu), 
                     Spatial_Acceleration(dest='fluid', sources=['fluid']),                
                     #XSPHCorrection(dest='fluid', sources=['fluid'], eps=0.5),            
@@ -259,16 +258,16 @@ class EllipticalDrop(Application):
                     GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
                     ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
                     PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2, H=self.h0),
-                    PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, Uc0=self.c0, Rh=self.PSR_Rh, saveAllDRh=True, R_coeff=self.PST_R_coeff, n_exp=self.PST_n_exp),            
+                    PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, Uc0=self.PST_Uc0,  Rh=self.PSR_Rh, saveAllDRh=True, R_coeff=self.PST_R_coeff, n_exp=self.PST_n_exp, ),            
                 ],real=True
                 ),
 
                 Group(equations=[
                     ContinuityEquation(dest='fluid', sources=['fluid']),                 
                     ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1), 
-                    #MomentumEquation(dest='fluid', sources=['fluid'], c0=self.c0, alpha=0.0, beta=0.0, gx=0.0, gy=0.0, gz=0.0, tensile_correction=False), 
+                    MomentumEquation(dest='fluid', sources=['fluid'], c0=self.c0, alpha=0.0, beta=0.0, gx=0.0, gy=0.0, gz=0.0, tensile_correction=False), 
                     #MomentumEquationDeltaSPH(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, alpha=0.0), 
-                    LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+                    #LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
                     LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu), 
                     Spatial_Acceleration(dest='fluid', sources=['fluid']),                
                     #XSPHCorrection(dest='fluid', sources=['fluid'], eps=0.5),            
@@ -347,7 +346,7 @@ class EllipticalDrop(Application):
     def customize_output(self):
         self._mayavi_config('''
         b = particle_arrays['fluid']
-        b.scalar = 'vmag'
+        b.scalar = 'lmda'
         ''')
 
 if __name__ == '__main__':
