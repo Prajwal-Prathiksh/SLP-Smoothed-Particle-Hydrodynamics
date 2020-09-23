@@ -5,6 +5,8 @@
 # PyPSH Equations Import
 from pysph.sph.equation import Equation
 
+from pysph.base.reduce_array import parallel_reduce_array, serial_reduce_array
+
 # Miscellaneous Import
 from textwrap import dedent
 from compyle.api import declare
@@ -194,13 +196,12 @@ class PST_PreStep_1(Equation):
         # compute the principle stresses
         eigen_decomposition(L, R, cython.address(V[0]))
 
-        lmda = V[0]
+        lmda = 1.0
         for i in range(1, n):
-            if V[i] < lmda:
+            if V[i] < lmda and V[i] >= 0.0:
                 lmda = V[i]
 
         d_lmda[d_idx] = lmda
-
 
 class PST_PreStep_2(Equation):
     def __init__(self, dest, sources, dim, H):
@@ -256,6 +257,8 @@ class PST(Equation):
 
         ..math::
             \mathbf{r_i}^\ast=\mathbf{r_i}+\delta\mathbf{\hat{r_i}}
+
+            ########### \delta \mathbf{r_i} = \frac{-U_{max}h\Delta t}{2}\sum_i \Bigg[1 + R\Bigg(\frac{W_{ij}}{W(\Delta)}\Bigg)^n\Bigg]\nabla \mathbf{W_{ij}} \Bigg(\frac{m_j}{\rho_i + \rho_j}\Bigg)
         
         where, 
 
@@ -330,7 +333,7 @@ class PST(Equation):
             (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
     """
     def __init__(
-        self, dest, sources, H, dim, cfl=0.5, Uc0=15.0, R_coeff=0.2, n_exp=4.0,
+        self, dest, sources, H, dt, dx, dim, cfl=0.5, Uc0=15.0, R_coeff=0.2, n_exp=4.0,
         Rh=0.115, saveAllDRh = False
     ):
         r'''
@@ -364,14 +367,25 @@ class PST(Equation):
         self.R_coeff = R_coeff
         self.n_exp = n_exp
         self.H = H
+        self.dt = dt
+        self.dx = dx
         self.cfl = cfl
         self.Uc0 = Uc0
         self.Rh = Rh
         self.saveAllDRh = saveAllDRh
 
-        self.CONST = (-self.cfl/self.Uc0)*4.0*H*H
+        self.CONST = -0.5*dt*H #(-self.cfl/self.Uc0)*4.0*H*H
 
         super(PST, self).__init__(dest, sources)
+
+    '''
+    def py_initialize(self, dst, t, dt):
+        from numpy import sqrt, max
+        vmag = dst.u**2 + dst.v**2 + dst.w**2
+        dst.vmax[0] = sqrt(max(vmag))
+        #dst.vmax[0] = serial_reduce_array(vmag, 'max')
+        #dst.vmax[:] = parallel_reduce_array(dst.vmax, 'max')
+    '''
 
     def initialize(self, d_idx, d_DX, d_DY, d_DZ, d_DRh):
         d_DX[d_idx] = 0.0
@@ -381,7 +395,7 @@ class PST(Equation):
 
     def loop_all(
         self, d_idx, d_x, d_y, d_z, d_rho, d_delta_s, d_DX, d_DY, d_DZ, d_DRh, 
-        d_lmda, d_gradlmda, s_x, s_y, s_z, s_rho, s_m, SPH_KERNEL, NBRS, 
+        d_lmda, d_gradlmda, d_vmax, s_x, s_y, s_z, s_rho, s_m, SPH_KERNEL, NBRS, 
         N_NBRS, EPS
     ):
         n, i, j, k = declare('int', 4)
@@ -408,8 +422,10 @@ class PST(Equation):
             ##################
 
             # Calculate W(\delta s) value
+            
             delta_s = d_delta_s[d_idx]
-            w_delta_s = SPH_KERNEL.kernel(xij, delta_s, self.H) 
+            #w_delta_s = SPH_KERNEL.kernel(xij, delta_s, self.H)
+            w_delta_s = SPH_KERNEL.kernel(xij, self.dx, self.H) 
 
             for i in range(N_NBRS):
                 s_idx = NBRS[i]
@@ -434,11 +450,13 @@ class PST(Equation):
                 fij = self.R_coeff * pow((wij/(EPS+w_delta_s)), self.n_exp)
 
                 # Calcuate multiplicative factor
+                ##### fac = (1.0 + fij)*(mj/(rhoi+rhoj+EPS))
                 fac = (1.0 + fij)*(mj/(rhoi+rhoj+EPS))
 
                 # Sum \delta r_i
                 for j in range(n):
-                    deltaR[j] += self.CONST*fac*dwij[j]
+                    #deltaR[j] += self.CONST*d_vmax[0]*fac*dwij[j]
+                    deltaR[j] += self.CONST*self.Uc0*fac*dwij[j]
 
             if lmdai > 0.75:
                 ##################

@@ -141,9 +141,12 @@ class EllipticalDrop(Application):
 
         self.PST = True
         self.PSR_Rh = 0.05
-        self.PST_R_coeff = 1e-4
+        self.PST_R_coeff = 0.2 #1e-4
         self.PST_n_exp = 4.0  
-        self.PST_Uc0 = 1400.0
+        self.PST_Uc0 = 140.0
+
+        print('dt: ', self.dt)
+        print('dx: ', self.dx)
 
     def create_particles(self):
         """Create the circular patch of fluid."""
@@ -182,14 +185,14 @@ class EllipticalDrop(Application):
         
         add_props = [
             'lmda', 'delta_s', 'rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 
-            'ax', 'ay', 'az', 'DRh', 'DY', 'DX', 'DZ'
+            'ax', 'ay', 'az', 'DRh', 'DY', 'DX', 'DZ', 'vmax'
         ]
         for i in add_props:
             pa.add_property(i)
 
         pa.set_output_arrays([
             'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'm', 'h', 'pid', 'gid', 'tag', 
-            'p', 'lmda', 'delta_s', 'DRh',
+            'p', 'lmda', 'delta_s', 'DRh', 'vmax'
         ])
         return [pa]
 
@@ -250,7 +253,7 @@ class EllipticalDrop(Application):
                     IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
                     GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2),
                     PST_PreStep_1(dest='fluid', sources=['fluid'], dim=2),
-                    AverageSpacing(dest='fluid', sources=['fluid'], dim=2),            
+                    ######AverageSpacing(dest='fluid', sources=['fluid'], dim=2),            
                 ],real=False
                 ),
 
@@ -258,7 +261,7 @@ class EllipticalDrop(Application):
                     GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
                     ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
                     PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2, H=self.h0),
-                    PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, Uc0=self.PST_Uc0,  Rh=self.PSR_Rh, saveAllDRh=True, R_coeff=self.PST_R_coeff, n_exp=self.PST_n_exp, ),            
+                    PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.PST_Uc0, Rh=self.PSR_Rh, saveAllDRh=True, R_coeff=self.PST_R_coeff, n_exp=self.PST_n_exp),            
                 ],real=True
                 ),
 
@@ -294,7 +297,7 @@ class EllipticalDrop(Application):
         print("At tf=%s" % tf)
         print("Semi-major axis length (exact, computed) = %s, %s"
               % (1.0/a, max(pa.y)))
-        plt.plot(xe, ye, label='exact')
+        plt.plot(xe, ye, 'k--', label='exact')
         plt.scatter(pa.x, pa.y, marker='.', label='particles')
         plt.ylim(-2, 2)
         plt.xlim(plt.ylim())

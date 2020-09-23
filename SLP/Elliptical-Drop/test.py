@@ -178,7 +178,7 @@ class EllipticalDrop(Application):
         print("At tf=%s" % tf)
         print("Semi-major axis length (exact, computed) = %s, %s"
               % (1.0/a, max(pa.y)))
-        plt.plot(xe, ye, label='exact')
+        plt.plot(xe, ye, 'k--', label='exact')
         plt.scatter(pa.x, pa.y, marker='.', label='particles')
         plt.ylim(-2, 2)
         plt.xlim(plt.ylim())
