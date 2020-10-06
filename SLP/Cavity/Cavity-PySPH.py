@@ -3,9 +3,9 @@
 ###########################################################################
 
 # PySPH base imports
-from pysph.base.kernels import WendlandQuintic, QuinticSpline
+from pysph.base.kernels import WendlandQuintic, QuinticSpline, Gaussian, CubicSpline
 from pysph.base.nnps import DomainManager
-from pysph.base.utils import get_particle_array_tvf_fluid, get_particle_array_tvf_solid, get_particle_array
+from pysph.base.utils import get_particle_array_wcsph
 
 # PySPH solver imports
 from pysph.solver.application import Application
@@ -17,7 +17,8 @@ from pysph.sph.wc.edac import ComputeAveragePressure
 
 # SPH Integrator Imports
 from pysph.sph.integrator import EulerIntegrator, PECIntegrator
-from pysph.sph.integrator_step import EulerStep, WCSPHStep, TransportVelocityStep
+from pysph.sph.integrator_step import EulerStep, WCSPHStep
+
 
 # Numpy import
 from numpy import cos, sin, exp, pi
@@ -30,12 +31,8 @@ sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-H
 sys.path.insert(1, 'E:\IIT Bombay\Winter Project - 2019\SLP-Smoothed-Particle-Hydrodynamics')
 
 # SPH Equation Imports
-from pysph.sph.wc.transport_velocity import (
-    SummationDensity, StateEquation, MomentumEquationPressureGradient,
-    MomentumEquationArtificialViscosity,
-    MomentumEquationViscosity, MomentumEquationArtificialStress,
-    SolidWallPressureBC, SolidWallNoSlipBC, SetWallVelocity
-)
+from SLP.dpsph.equations import PST_PreStep_1, PST_PreStep_2, PST, AverageSpacing
+from SLP.dpsph.integrator import DPSPHStep
 
 ### EOS
 from pysph.sph.basic_equations import IsothermalEOS 
@@ -64,6 +61,7 @@ from pysph.sph.wc.kernel_correction import (
 ################################################################################
 # CODE
 ################################################################################
+
 L = 1.0
 Umax = 1.0
 c0 = 10 * Umax
@@ -77,16 +75,32 @@ hdx = 1.0
 # Tayloy Green Vortex - Application
 ################################################################################
 class Cavity(Application):
-    def initialize(self):
+    def add_user_options(self, group):
+        group.add_argument(
+            "--nx", action="store", type=int, dest="nx", default=50,
+            help="Number of points along x direction."
+        )
+        group.add_argument(
+            "--re", action="store", type=float, dest="re", default=100,
+            help="Reynolds number (defaults to 100)."
+        )
+        self.n_avg = 5
+        group.add_argument(
+            "--n-vel-avg", action="store", type=int, dest="n_avg",
+            default=None,
+            help="Average velocities over these many saved timesteps."
+        )
+
+    def consume_user_options(self):
         '''
         Initialize simulation paramters
         '''
+        self.nx = self.options.nx
+        if self.options.n_avg is not None:
+            self.n_avg = self.options.n_avg
 
-        # Simulation Parameters
-        self.nx = 50.0
-        self.n_avg = 5
         self.dx = L / self.nx
-        self.re = 100.0
+        self.re = self.options.re
         h0 = hdx * self.dx
         self.nu = Umax * L / self.re
         dt_cfl = 0.25 * h0 / (c0 + Umax)
@@ -94,9 +108,19 @@ class Cavity(Application):
         dt_force = 1.0
         self.tf = 10.0
         self.dt = min(dt_cfl, dt_viscous, dt_force)
+        self.h0 = h0
         self.rho0 = rho0
         self.p0 = p0
         self.c0 = c0
+
+        self.PSR_Rh = 0.05
+        self.PST_R_coeff = 0.2 #1e-4
+        self.PST_n_exp = 4.0 #3.0
+        self.PST_Uc0 = 1.0
+        
+        # Print parameters
+        print('dx : ', self.dx)
+        print('dt : ', self.dt)
 
     def create_particles(self):
         dx = self.dx

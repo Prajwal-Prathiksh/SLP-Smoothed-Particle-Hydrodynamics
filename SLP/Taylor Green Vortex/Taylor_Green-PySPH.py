@@ -27,7 +27,7 @@ import os
 
 # Include path
 import sys
-#sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics')
+sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics')
 sys.path.insert(1, 'E:\IIT Bombay\Winter Project - 2019\SLP-Smoothed-Particle-Hydrodynamics')
 
 # SPH Equation Imports
