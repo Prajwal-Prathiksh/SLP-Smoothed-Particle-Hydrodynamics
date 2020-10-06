@@ -1,0 +1,4 @@
+Simulation Number,Scheme,Kernel,nx,hdx,c0,PST,PST_Rh,PST_R_coeff,PST_n_exp
+00,TVF,QuinticSpline,50,1,10,FALSE,///,///,///
+01,EDAC,QuinticSpline,50,1,10,FALSE,///,///,///
+02,TVF - IST,QuinticSpline,50,1,10,FALSE,///,///,///

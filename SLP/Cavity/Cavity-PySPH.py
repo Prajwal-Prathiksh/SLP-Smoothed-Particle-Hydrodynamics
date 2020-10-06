@@ -3,9 +3,13 @@
 ###########################################################################
 
 # PySPH base imports
-from pysph.base.kernels import WendlandQuintic, QuinticSpline, Gaussian, CubicSpline
+from pysph.base.kernels import (
+    WendlandQuintic, QuinticSpline, Gaussian, CubicSpline
+)
 from pysph.base.nnps import DomainManager
-from pysph.base.utils import get_particle_array_wcsph
+from pysph.base.utils import (
+    get_particle_array_wcsph, get_particle_array_tvf_solid
+)
 
 # PySPH solver imports
 from pysph.solver.application import Application
@@ -14,10 +18,18 @@ from pysph.solver.solver import Solver
 # PySPH sph imports
 from pysph.sph.equation import Equation, Group
 from pysph.sph.wc.edac import ComputeAveragePressure
+from pysph.sph.basic_equations import SummationDensity
+from pysph.sph.wc.transport_velocity import (
+    StateEquation, SetWallVelocity, SolidWallPressureBC, 
+    MomentumEquationPressureGradient, MomentumEquationViscosity, 
+    SolidWallNoSlipBC, MomentumEquationArtificialStress
+)
 
 # SPH Integrator Imports
 from pysph.sph.integrator import EulerIntegrator, PECIntegrator
-from pysph.sph.integrator_step import EulerStep, WCSPHStep
+from pysph.sph.integrator_step import (
+    EulerStep, WCSPHStep, TransportVelocityStep
+)
 
 
 # Numpy import
@@ -27,11 +39,13 @@ import os
 
 # Include path
 import sys
-sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics')
+#sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics')
 sys.path.insert(1, 'E:\IIT Bombay\Winter Project - 2019\SLP-Smoothed-Particle-Hydrodynamics')
 
 # SPH Equation Imports
-from SLP.dpsph.equations import PST_PreStep_1, PST_PreStep_2, PST, AverageSpacing
+from SLP.dpsph.equations import (
+    PST_PreStep_1, PST_PreStep_2, PST, AverageSpacing
+)
 from SLP.dpsph.integrator import DPSPHStep
 
 ### EOS
@@ -118,10 +132,6 @@ class Cavity(Application):
         self.PST_n_exp = 4.0 #3.0
         self.PST_Uc0 = 1.0
         
-        # Print parameters
-        print('dx : ', self.dx)
-        print('dt : ', self.dt)
-
     def create_particles(self):
         dx = self.dx
         ghost_extent = 5 * dx
@@ -146,7 +156,8 @@ class Cavity(Application):
         fluid.set_name('fluid')
         solid.remove_particles(indices)
 
-        print("Lid driven cavity :: Re = %d, dt = %g" % (self.re, self.dt))
+        disp_vals = (self.re, self.dt, self.dx)
+        print("Lid driven cavity :: Re = %d, dt = %g, dx = %g" % disp_vals)
 
         # setup the particle properties
         volume = dx * dx
@@ -182,7 +193,7 @@ class Cavity(Application):
         for i in tv_props_fluid:
             fluid.add_property(i)
         fluid.set_output_arrays(
-            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 'au', 'av', 
+            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 'au', 'av',
             'aw', 'V', 'vmag2', 'pid', 'gid', 'tag']
         )    
 
@@ -197,7 +208,10 @@ class Cavity(Application):
             'gid', 'tag']
         )
 
-        add_props = ['rho0', 'x0', 'y0', 'z0']
+        add_props = [
+            'rho0', 'x0', 'y0', 'z0', 'lmda', 'gradlmda', 'DY', 'DRh', 'DZ', 
+            'delta_s', 'DX', 'vmax', 
+            ]
         for i in add_props:
             fluid.add_property(i)
             solid.add_property(i)
@@ -214,14 +228,12 @@ class Cavity(Application):
         '''
 
         kernel = QuinticSpline(dim=2)
-        from SLP.dpsph.integrator import TransportVelocityStep_DPSPH
-        
-        #integrator = PECIntegrator(fluid = TransportVelocityStep())
-        integrator = PECIntegrator(fluid=TransportVelocityStep_DPSPH())
+
+        integrator = PECIntegrator(fluid=TransportVelocityStep())
 
         solver = Solver(
             kernel=kernel, dim=2, integrator=integrator, dt=self.dt, tf=self.tf, 
-            pfreq=500
+            pfreq=300
         )
 
         return solver
@@ -234,66 +246,50 @@ class Cavity(Application):
         '''
         equations = [
             Group(equations=[
-
                 SummationDensity(dest='fluid', sources=['fluid', 'solid'])
-                
-                ], real=False
-            ),
-            Group(equations=[
+            ], real=False),
 
-                StateEquation(dest='fluid', sources=None, p0=p0, rho0=rho0), 
+            Group(equations=[
+                StateEquation(dest='fluid', sources=None, p0=self.p0, rho0=self.rho0), 
                 SetWallVelocity(dest='solid', sources=['fluid'])
-
-                ], real=False
-            ),            
-            Group(equations=[
-                
-                SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=rho0, p0=p0)
-  
-                ], real=False
-            ), 
+            ], real=False),
 
             Group(equations=[
-            
-                MomentumEquationPressureGradient(dest='fluid', sources=['fluid', 'solid'], pb=p0),
+                SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0)
+            ], real=False),
+
+            Group(equations=[
+                MomentumEquationPressureGradient(dest='fluid', sources=['fluid','solid'], pb=self.p0), 
                 MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu), 
                 SolidWallNoSlipBC(dest='fluid', sources=['solid'], nu=self.nu), 
                 MomentumEquationArtificialStress(dest='fluid', sources=['fluid'])
-            
-                ], real=True
-            )
-        ]  
+            ], real=True)
+        ]   
         '''
+        
         equations = [
             Group(equations=[
-
-                #IsothermalEOS(dest='fluid', sources=['fluid', 'solid'], rho0=rho0, c0=c0, p0=p0),
-                GradientCorrectionPreStep(dest='fluid', sources=['fluid', 'solid'], dim=2),
-                StateEquation(dest='fluid', sources=None, p0=p0, rho0=rho0), 
-                SetWallVelocity(dest='solid', sources=['fluid']),
-                SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=rho0, p0=p0),
-                ], real=False
-            ),            
+                SummationDensity(dest='fluid', sources=['fluid', 'solid'])
+            ], real=False),
 
             Group(equations=[
+                #StateEquation(dest='fluid', sources=None, p0=self.p0, rho0=self.rho0), 
+                IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
+                SetWallVelocity(dest='solid', sources=['fluid'])
+            ], real=False),
 
-                MomentumEquationPressureGradient(dest='fluid', sources=['fluid', 'solid'], pb=p0),
+            Group(equations=[
+                SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0)
+            ], real=False),
+
+            Group(equations=[
+                MomentumEquationPressureGradient(dest='fluid', sources=['fluid','solid'], pb=self.p0), 
                 MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu), 
                 SolidWallNoSlipBC(dest='fluid', sources=['solid'], nu=self.nu), 
-                MomentumEquationArtificialStress(dest='fluid', sources=['fluid']),
-                
-                #LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid', 'solid']),
-                #LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid', 'solid'], dim=2, rho0=self.rho0, nu=self.nu), 
-                #Spatial_Acceleration(dest='fluid', sources=['fluid']),
-
-                ContinuityEquation(dest='fluid', sources=['fluid', 'solid']),
-                GradientCorrection(dest='fluid', sources=['fluid', 'solid'], dim=2, tol=0.1), 
-                ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid', 'solid']), 
-                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid', 'solid'], c0=self.c0, delta=0.1),
-            
-                ], real=True
-            )
-        ]   
+                MomentumEquationArtificialStress(dest='fluid', sources=['fluid'])
+            ], real=True)
+        ]
+        
 
         return equations
 
