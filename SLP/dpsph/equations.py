@@ -72,94 +72,29 @@ class AverageSpacing(Equation):
         d_delta_s[d_idx] += sum/N_NBRS
 
 class PST_PreStep_1(Equation):
-    r"""*Particle-Shifting Technique employed in
-        Delta_plus SPH scheme*
+    r"""**PST_PreStep_1**
 
-        ..math::
-            \mathbf{r_i}^\ast=\mathbf{r_i}+\delta\mathbf{\hat{r_i}}
-        
-        where, 
-
-        ..math::
-            \delta\mathbf{\hat{r_i}}=\begin{cases}
-                0  & ,\lambda_i\in[0,0.4) \\
-                (\mathbb{I}-\mathbf{n_i}\otimes\mathbf{n_i})\delta\mathbf{r_i} 
-                & ,\lambda_i\in[0.4, 0.75] \\
-                \delta\mathbf{r_i} & ,\lambda_i\in(0.75,1]
-            \end{cases}
-
-        ..math::
-            \delta\mathbf{r_i}=\frac{-\Delta t c_o(2h)^2}{h_i}.\sum_j\bigg[1+R
-            \bigg(\frac{W_{ij}}{W(\Delta p)}\bigg)^n\bigg]\nabla_i W_{ij}\bigg(
-            \frac{m_j}{\rho_i+\rho_j}\bigg)
-
-        ..math::
-            \mathbf{n_i}=\frac{\langle\nabla\lambda_i\rangle}{|\langle\nabla
-            \lambda_i\rangle|}
-
-        ..math::
-            \langle\nabla\lambda_i\rangle=\sum_j(\lambda_j-\lambda_i)\otimes
-            \mathbb{L}_i\nabla_i W_{ij}V_j
-
-        ..math::
-            \lambda_i=\text{min}\big(\text{eigenvalue}(\mathbb{L_i^{-1}})\big)
-
-        ..math::
-            \mathbb{L_i}=\bigg[\sum_j\mathbf{r_{ji}}\otimes\nabla_i W_{ij}V_j
-            \bigg]^{-1}
-
-
-        References:
-        -----------
-        .. [Sun2017] Sun, P. N., et al. “The δ p l u s -SPH Model: Simple
-        Procedures for a Further Improvement of the SPH Scheme.” Computer 
-        Methods in Applied Mechanics and Engineering, vol. 315, Mar. 2017, pp. 
-        25–49. DOI.org (Crossref), doi:10.1016/j.cma.2016.10.028.
-
-        .. [Sun2019] Sun, P. N., et al. “A Consistent Approach to Particle 
-        Shifting in the δ - Plus -SPH Model.” Computer Methods in Applied 
-        Mechanics and Engineering, vol. 348, May 2019, pp. 912–34. DOI.org 
-        (Crossref), doi:10.1016/j.cma.2019.01.045.
-
-        .. [Monaghan2000] Monaghan, J. J. “SPH without a Tensile Instability.” 
-        Journal of Computational Physics, vol. 159, no. 2, Apr. 2000, pp. 
-        290–311. DOI.org (Crossref), doi:10.1006/jcph.2000.6439.
-        
         Parameters:
         -----------
-        H : float
-            Kernel smoothing length (:math:`h`)
-
         dim : integer
             Number of dimensions
 
-        cfl : float, default = 0.5
-            CFL value
-
-        Uc0 : float. default = 15.0
-            :math:`\frac{U}{c_o}` value of the system
-
-        R_coeff : float, default = 0.2
-            Artificial pressure coefficient
-
-        n_exp : float, default = 4
-            Artificial pressure exponent
-
-        Rh : float, default = 0.075
-            Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during Particle
-            shifting 
-            (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
+        boundedFlow : boolean
+            If True, flow has free surface/s
     """
-    def __init__(self, dest, sources, dim):
+    def __init__(self, dest, sources, dim, boundedFlow):
         r'''
             Parameters:
             -----------
             dim : integer
                 Number of dimensions
 
-        '''       
-            
+            boundedFlow : boolean, default = False
+                If True, flow has free surface/s
+        '''                   
         self.dim = dim
+        self.boundedFlow = boundedFlow
+
         super(PST_PreStep_1, self).__init__(dest, sources)
 
     def _cython_code_(self):
@@ -170,9 +105,10 @@ class PST_PreStep_1(Equation):
         return code
 
     def initialize(self, d_idx, d_lmda):
-        d_lmda[d_idx] = 0.0 # Initialize \lambda1
+        d_lmda[d_idx] = 1.0 # Initialize \lambda_i
 
     def loop(self, d_idx, d_m_mat, d_lmda):
+
         i, j, n = declare('int', 3)        
         n = self.dim
 
@@ -186,79 +122,95 @@ class PST_PreStep_1(Equation):
         # L-Matrix
         L = declare('matrix((3,3))')
 
-        for i in range(n):
-            for j in range(n):
-                L[i][j] = d_m_mat[9 * d_idx + 3 * i + j]
+        if self.boundedFlow == False:
+            for i in range(n):
+                for j in range(n):
+                    L[i][j] = d_m_mat[9 * d_idx + 3 * i + j]
 
-        if n == 2:
-            L[2][2] = 99999.0
+            if n == 2:
+                L[2][2] = 99999.0
 
-        # compute the principle stresses
-        eigen_decomposition(L, R, cython.address(V[0]))
+            # compute the principle stresses
+            eigen_decomposition(L, R, cython.address(V[0]))
 
-        lmda = 1.0
-        for i in range(1, n):
-            if V[i] < lmda and V[i] >= 0.0:
-                lmda = V[i]
+            lmda = 1.0
+            for i in range(n):
+                if V[i] < lmda and V[i] >= 0.0:
+                    lmda = V[i]
 
-        d_lmda[d_idx] = lmda
+            d_lmda[d_idx] = lmda
 
 class PST_PreStep_2(Equation):
-    def __init__(self, dest, sources, dim, H):
+    r"""**PST_PreStep_2**
+
+        See :class:`pysph.sph.wc.kernel_correction.GradientCorrectionPreStep` 
+        and :class:`pysph.sph.wc.kernel_correction.GradientCorrection` which
+        multiples the matrix :math:`L_a` with :math:`\nabla W_{ij}`
+
+        Parameters:
+        -----------
+        H : float
+            Kernel smoothing length (:math:`h`)
+
+        dim : integer
+            Number of dimensions
+
+        boundedFlow : boolean
+            If True, flow has free surface/s
+
+        Notes:
+        ------ 
+        This equation needs to be grouped in the same group as 
+        `GradientCorrection` and `PST_PreStep_1`, since it needs to be 
+        pre-multiplied with :math:`L_a` and requires the pre-calculated
+        :math:`\lambda_i` value
+        """
+    def __init__(self, dest, sources, H, dim, boundedFlow):
         r'''
             Parameters:
             -----------
+            H : float
+                Kernel smoothing length (:math:`h`)
+
             dim : integer
                 Number of dimensions
 
+            boundedFlow : boolean
+                If True, flow has free surface/s
         '''       
             
-        self.dim = dim
         self.H = H
+        self.dim = dim
+        self.boundedFlow = boundedFlow
+        
         super(PST_PreStep_2, self).__init__(dest, sources)
 
     def initialize(self, d_idx, d_gradlmda):
         d_gradlmda[d_idx*3 + 0] = 0.0
         d_gradlmda[d_idx*3 + 1] = 0.0
         d_gradlmda[d_idx*3 + 2] = 0.0
-    def loop_all(
-        self, d_idx, d_x, d_y, d_z, d_lmda, d_gradlmda, s_x, s_y, s_z, s_rho, 
-        s_m, s_lmda, SPH_KERNEL, NBRS, N_NBRS
-    ):
-        n, i, j = declare('int', 3)
-        n = self.dim
-        s_idx = declare('long')
-        xij = declare('matrix(3)')
-        dwij = declare('matrix(3)')
 
-        lmdai = d_lmda[d_idx]
-        for i in range(N_NBRS):
-            s_idx = NBRS[i]
+    def loop(self, d_idx, s_idx, d_lmda, s_lmda, s_rho, s_m, d_gradlmda, DWIJ):
 
-            Vj = s_m[s_idx]/s_rho[s_idx]
+        if self.boundedFlow == False:
+            lmdai = d_lmda[d_idx]
             lmdaj = s_lmda[s_idx]
 
-            lmdaij = (lmdai - lmdaj)
-            xij[0] = d_x[d_idx] - s_x[s_idx]
-            xij[1] = d_y[d_idx] - s_y[s_idx]
-            xij[2] = d_z[d_idx] - s_z[s_idx]
-            rij = sqrt(xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2])
+            Vj = s_m[s_idx]/s_rho[s_idx]
 
-            # Calculate Kernel gradient value
-            SPH_KERNEL.gradient(xij, rij, self.H, dwij)
+            fac = (lmdai - lmdaj) * Vj
 
-            # Grad Lambda value
-            for j in range(n):
-                d_gradlmda[d_idx*3 + j] += lmdaij * dwij[j] * Vj
+            d_gradlmda[d_idx*3 + 0] += fac * DWIJ[0]
+            d_gradlmda[d_idx*3 + 1] += fac * DWIJ[1]
+            d_gradlmda[d_idx*3 + 2] += fac * DWIJ[2]
 
 class PST(Equation):
-    r"""*Particle-Shifting Technique employed in
-        Delta_plus SPH scheme*
+    r"""**Particle-Shifting Technique employed (:math:`\delta^+` - SPH Scheme)**
 
         ..math::
             \mathbf{r_i}^\ast=\mathbf{r_i}+\delta\mathbf{\hat{r_i}}
 
-            ########### \delta \mathbf{r_i} = \frac{-U_{max}h\Delta t}{2}\sum_i \Bigg[1 + R\Bigg(\frac{W_{ij}}{W(\Delta)}\Bigg)^n\Bigg]\nabla \mathbf{W_{ij}} \Bigg(\frac{m_j}{\rho_i + \rho_j}\Bigg)
+            \delta \mathbf{r_i} = \frac{-U_{max}h\Delta t}{2}\sum_i \Bigg[1 + R\Bigg(\frac{W_{ij}}{W(\Delta)}\Bigg)^n\Bigg]\nabla \mathbf{W_{ij}} \Bigg(\frac{m_j}{\rho_i + \rho_j}\Bigg)
         
         where, 
 
@@ -312,14 +264,23 @@ class PST(Equation):
         H : float
             Kernel smoothing length (:math:`h`)
 
+        dt : float
+            Time step (:math:`\Delta t`)
+
+        dx : float
+            Initial particle spacing (:math:`\Delta x`)
+
         dim : integer
             Number of dimensions
 
+        Uc0 : float
+            :math:`\frac{U}{c_o}` value of the system
+
+        boundedFlow : boolean
+            If True, flow has free surface/s
+
         cfl : float, default = 0.5
             CFL value
-
-        Uc0 : float. default = 15.0
-            :math:`\frac{U}{c_o}` value of the system
 
         R_coeff : float, default = 0.2
             Artificial pressure coefficient
@@ -327,14 +288,20 @@ class PST(Equation):
         n_exp : float, default = 4
             Artificial pressure exponent
 
-        Rh : float, default = 0.075
-            Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during Particle
-            shifting 
+        Rh : float, default = 0.05
+            Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during 
+            particle shifting 
             (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
+        
+        saveAllDRh : boolean, default = False
+            If True, stores the :math:`\frac{|\delta r_i|}{h}` value of all 
+            particles in the particle variable 'DRh'. 
+            If False, stores the :math:`\frac{|\delta r_i|}{h}` value only 
+            if the condition mentioned above is satisfied
     """
     def __init__(
-        self, dest, sources, H, dt, dx, dim, cfl=0.5, Uc0=15.0, R_coeff=0.2, n_exp=4.0,
-        Rh=0.115, saveAllDRh = False
+        self, dest, sources, H, dt, dx, dim, Uc0, boundedFlow, cfl=0.5, 
+        R_coeff=0.2, n_exp=4.0, Rh=0.05, saveAllDRh=False
     ):
         r'''
             Parameters:
@@ -342,14 +309,20 @@ class PST(Equation):
             H : float
                 Kernel smoothing length (:math:`h`)
 
+            dt : float
+                Time step (:math:`\Delta t`)
+
+            dx : float
+                Initial particle spacing (:math:`\Delta x`)
+
             dim : integer
                 Number of dimensions
 
+            Uc0 : float
+                :math:`\frac{U}{c_o}` value of the system
+
             cfl : float, default = 0.5
                 CFL value
-
-            Uc0 : float. default = 15.0
-                :math:`\frac{U}{c_o}` value of the system
 
             R_coeff : float, default = 0.2
                 Artificial pressure coefficient
@@ -357,10 +330,19 @@ class PST(Equation):
             n_exp : float, default = 4
                 Artificial pressure exponent
 
-            Rh : float, default = 0.115
-                Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during Particle
-                shifting 
+            Rh : float, default = 0.05
+                Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during 
+                particle shifting 
                 (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
+            
+            saveAllDRh : boolean, default = False
+                If True, stores the :math:`\frac{|\delta r_i|}{h}` value of all 
+                particles in the particle variable 'DRh'. 
+                If False, stores the :math:`\frac{|\delta r_i|}{h}` value only 
+                if the condition mentioned above is satisfied
+
+            boundedFlow : boolean, default = False
+                If True, flow has free surface/s
         '''       
         
         self.dim = dim
@@ -373,19 +355,11 @@ class PST(Equation):
         self.Uc0 = Uc0
         self.Rh = Rh
         self.saveAllDRh = saveAllDRh
+        self.boundedFlow = boundedFlow
 
-        self.CONST = -0.5*dt*H #(-self.cfl/self.Uc0)*4.0*H*H
+        self.CONST = -0.5*dt*H 
 
         super(PST, self).__init__(dest, sources)
-
-    '''
-    def py_initialize(self, dst, t, dt):
-        from numpy import sqrt, max
-        vmag = dst.u**2 + dst.v**2 + dst.w**2
-        dst.vmax[0] = sqrt(max(vmag))
-        #dst.vmax[0] = serial_reduce_array(vmag, 'max')
-        #dst.vmax[:] = parallel_reduce_array(dst.vmax, 'max')
-    '''
 
     def initialize(self, d_idx, d_DX, d_DY, d_DZ, d_DRh):
         d_DX[d_idx] = 0.0
@@ -394,9 +368,8 @@ class PST(Equation):
         d_DRh[d_idx] = 0.0
 
     def loop_all(
-        self, d_idx, d_x, d_y, d_z, d_rho, d_delta_s, d_DX, d_DY, d_DZ, d_DRh, 
-        d_lmda, d_gradlmda, d_vmax, s_x, s_y, s_z, s_rho, s_m, SPH_KERNEL, NBRS, 
-        N_NBRS, EPS
+        self, d_idx, d_x, d_y, d_z, d_rho, d_DX, d_DY, d_DZ, d_DRh, d_lmda, 
+        d_gradlmda, s_x, s_y, s_z, s_rho, s_m, SPH_KERNEL, NBRS, N_NBRS, EPS
     ):
         n, i, j, k = declare('int', 4)
         n = self.dim
@@ -416,15 +389,12 @@ class PST(Equation):
         rhoi = d_rho[d_idx]
         lmdai = d_lmda[d_idx]
 
-        if lmdai > 0.4:
+        if self.boundedFlow == True or lmdai > 0.4:
             ##################
             # Case - 2 & 3
             ##################
 
-            # Calculate W(\delta s) value
-            
-            delta_s = d_delta_s[d_idx]
-            #w_delta_s = SPH_KERNEL.kernel(xij, delta_s, self.H)
+            # Calculate W(\delta s) value            
             w_delta_s = SPH_KERNEL.kernel(xij, self.dx, self.H) 
 
             for i in range(N_NBRS):
@@ -450,15 +420,13 @@ class PST(Equation):
                 fij = self.R_coeff * pow((wij/(EPS+w_delta_s)), self.n_exp)
 
                 # Calcuate multiplicative factor
-                ##### fac = (1.0 + fij)*(mj/(rhoi+rhoj+EPS))
                 fac = (1.0 + fij)*(mj/(rhoi+rhoj+EPS))
 
                 # Sum \delta r_i
                 for j in range(n):
-                    #deltaR[j] += self.CONST*d_vmax[0]*fac*dwij[j]
                     deltaR[j] += self.CONST*self.Uc0*fac*dwij[j]
 
-            if lmdai > 0.75:
+            if self.boundedFlow == True or lmdai > 0.75:
                 ##################
                 # Case - 3
                 ##################
@@ -477,7 +445,7 @@ class PST(Equation):
                     d_DZ[d_idx] = deltaR[2]
                     d_DRh[d_idx] = rh
             
-            elif lmdai <= 0.75:
+            elif self.boundedFlow == False and lmdai <= 0.75:
                 ##################
                 # Case - 2
                 ##################

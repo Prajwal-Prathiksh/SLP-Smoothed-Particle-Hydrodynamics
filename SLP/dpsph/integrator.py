@@ -101,3 +101,53 @@ class DPSPHStep(IntegratorStep):
         d_x[d_idx] += d_DX[d_idx]
         d_y[d_idx] += d_DY[d_idx]
         d_z[d_idx] += d_DZ[d_idx]
+
+
+class TransportVelocityStep_DPSPH(IntegratorStep):
+    def initialize(self):
+        pass
+
+    def stage1(self, d_idx, d_u, d_v, d_w, d_au, d_av, d_aw, d_uhat, d_auhat, d_vhat,
+                  d_avhat, d_what, d_awhat, d_x, d_y, d_z, dt, d_rho, d_arho):
+        dtb2 = 0.5*dt
+
+        # velocity update eqn (14)
+        d_u[d_idx] += dtb2*d_au[d_idx]
+        d_v[d_idx] += dtb2*d_av[d_idx]
+        d_w[d_idx] += dtb2*d_aw[d_idx]
+
+        # advection velocity update eqn (15)
+        d_uhat[d_idx] = d_u[d_idx] + dtb2*d_auhat[d_idx]
+        d_vhat[d_idx] = d_v[d_idx] + dtb2*d_avhat[d_idx]
+        d_what[d_idx] = d_w[d_idx] + dtb2*d_awhat[d_idx]
+
+        # position update eqn (16)
+        d_x[d_idx] += dt*d_uhat[d_idx]
+        d_y[d_idx] += dt*d_vhat[d_idx]
+        d_z[d_idx] += dt*d_what[d_idx]
+
+        # Update Density
+        #d_rho[d_idx] += dtb2*d_arho[d_idx]
+
+    def stage2(
+        self, d_idx, d_u, d_v, d_w, d_au, d_av, d_aw, d_vmag2, dt, d_rho, 
+        d_rho0, d_arho, d_x, d_y, d_z, d_DX, d_DY, d_DZ
+    ):
+        dtb2 = 0.5*dt
+
+        # corrector update eqn (17)
+        d_u[d_idx] += dtb2*d_au[d_idx]
+        d_v[d_idx] += dtb2*d_av[d_idx]
+        d_w[d_idx] += dtb2*d_aw[d_idx]
+
+        # Update Density
+        d_rho[d_idx] += dt*d_arho[d_idx]
+
+        # magnitude of velocity squared
+        d_vmag2[d_idx] = (d_u[d_idx]*d_u[d_idx] + d_v[d_idx]*d_v[d_idx] +
+                          d_w[d_idx]*d_w[d_idx])
+        
+        # PST Correction
+        d_x[d_idx] += d_DX[d_idx]
+        d_y[d_idx] += d_DY[d_idx]
+        d_z[d_idx] += d_DZ[d_idx]
