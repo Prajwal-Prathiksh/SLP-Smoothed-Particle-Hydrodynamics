@@ -9,5 +9,6 @@ Assignments/
 __pycache__/
 
 *.npz
+*.info
 !results.npz
 *config.py
