@@ -3,20 +3,11 @@
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-.vscode/
 settings.json
 
 Assignments/
 __pycache__/
 
-*_output/
-edac/
-wcsph/
-tvf/
-dpsph_/
-case-1/
-case-2/
-case-3/
 *.npz
 !results.npz
 *config.py
