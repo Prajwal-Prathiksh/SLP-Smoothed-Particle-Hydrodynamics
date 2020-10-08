@@ -162,6 +162,10 @@ class Taylor_Green(Application):
             "--tvf-correct", action="store_true", default=False,
             dest="tvf_correct", help="TVF correction"
         )
+        group.add_argument(
+            "--visc-correct", action="store_true", dest="visc_correct", default=False, 
+            help="Viscosity correction"
+        )
 
     def consume_user_options(self):
         '''
@@ -208,6 +212,7 @@ class Taylor_Green(Application):
         self.PST_boundedFlow = True
 
         self.TVF_correction = self.options.tvf_correct
+        self.visc_correct = 0.0 if self.options.visc_correct == False else self.nu
 
         # Print parameters
         print('dx : ', self.dx)
@@ -321,7 +326,7 @@ class Taylor_Green(Application):
                 ContinuityEquation(dest='fluid', sources=['fluid']),                 
                 ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1),
                 LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
-                #LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
+                LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.visc_correct),
                 LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu),
                 Spatial_Acceleration(dest='fluid', sources=['fluid']),
             ], real=True),
@@ -350,9 +355,9 @@ class Taylor_Green(Application):
 
                 Group(equations=[
                     MomentumEquationPressureGradient(dest='fluid', sources=['fluid'], pb=self.p0),  
-                    #MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu), 
+                    MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu), 
                     #MomentumEquationArtificialStress(dest='fluid', sources=['fluid']),
-                    LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+                    #LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
                     #LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
                     LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu),
                       
