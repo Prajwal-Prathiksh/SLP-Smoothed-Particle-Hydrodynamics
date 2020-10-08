@@ -1,0 +1,1 @@
+{"fname": "Taylor_Green-PySPH", "output_dir": "E:\\IIT Bombay\\Winter Project - 2019\\SLP-Smoothed-Particle-Hydrodynamics\\SLP\\Taylor Green Vortex\\06", "args": ["--openmp", "--perturb", "0.2", "-d", "06", "--tvf-correct"], "completed": true, "cpu_time": 373.761682510376}
