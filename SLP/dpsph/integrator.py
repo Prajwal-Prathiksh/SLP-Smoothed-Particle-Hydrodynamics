@@ -4,6 +4,7 @@
 
 # PySPH sph imports
 from pysph.sph.integrator import Integrator, IntegratorStep
+from math import sqrt, pow
 
 ################################################################################
 # Delta_Plus - SPH Sceheme: Integrator
@@ -84,7 +85,7 @@ class DPSPHStep(IntegratorStep):
 
     def stage2(self, d_idx, d_x0, d_y0, d_z0, d_x, d_y, d_z, d_DX, d_DY, d_DZ,
                    d_u0, d_v0, d_w0, d_u, d_v, d_w, d_rho0, d_rho, d_au, d_av,
-                   d_aw, d_ax, d_ay, d_az, d_arho, dt):
+                   d_aw, d_ax, d_ay, d_az, d_arho, d_vmag, d_vmag2, dt):
 
         d_u[d_idx] = d_u0[d_idx] + dt*d_au[d_idx]
         d_v[d_idx] = d_v0[d_idx] + dt*d_av[d_idx]
@@ -97,18 +98,27 @@ class DPSPHStep(IntegratorStep):
         # Update densities and smoothing lengths from the accelerations
         d_rho[d_idx] = d_rho0[d_idx] + dt * d_arho[d_idx]
 
+        # magnitude of velocity squared
+        d_vmag2[d_idx] = (d_u[d_idx]*d_u[d_idx] + d_v[d_idx]*d_v[d_idx] +
+                          d_w[d_idx]*d_w[d_idx])
 
+        d_vmag[d_idx] = sqrt(d_vmag2[d_idx])
+
+        # PST Corrections
         d_x[d_idx] += d_DX[d_idx]
         d_y[d_idx] += d_DY[d_idx]
         d_z[d_idx] += d_DZ[d_idx]
 
 
 class TransportVelocityStep_DPSPH(IntegratorStep):
-    def initialize(self):
+    def initialize(self, d_idx, d_rho, d_rho0):
         pass
+        d_rho0[d_idx] = d_rho[d_idx]
 
-    def stage1(self, d_idx, d_u, d_v, d_w, d_au, d_av, d_aw, d_uhat, d_auhat, d_vhat,
-                  d_avhat, d_what, d_awhat, d_x, d_y, d_z, dt, d_rho, d_arho):
+    def stage1(
+        self, d_idx, d_u, d_v, d_w, d_au, d_av, d_aw, d_uhat, d_auhat, d_vhat,
+        d_avhat, d_what, d_awhat, d_x, d_y, d_z, dt, d_rho, d_arho, d_rho0
+    ):
         dtb2 = 0.5*dt
 
         # velocity update eqn (14)
@@ -126,12 +136,11 @@ class TransportVelocityStep_DPSPH(IntegratorStep):
         d_y[d_idx] += dt*d_vhat[d_idx]
         d_z[d_idx] += dt*d_what[d_idx]
 
-        # Update Density
-        #d_rho[d_idx] += dtb2*d_arho[d_idx]
+        d_rho[d_idx] += dtb2 * d_arho[d_idx]
 
     def stage2(
-        self, d_idx, d_u, d_v, d_w, d_au, d_av, d_aw, d_vmag2, dt, d_rho, 
-        d_rho0, d_arho, d_x, d_y, d_z, d_DX, d_DY, d_DZ
+        self, d_idx, d_u, d_v, d_w, d_au, d_av, d_aw, d_vmag, d_vmag2, dt, 
+        d_rho, d_arho, d_rho0, d_x, d_y, d_z, d_DX, d_DY, d_DZ,
     ):
         dtb2 = 0.5*dt
 
@@ -141,11 +150,13 @@ class TransportVelocityStep_DPSPH(IntegratorStep):
         d_w[d_idx] += dtb2*d_aw[d_idx]
 
         # Update Density
-        d_rho[d_idx] += dt*d_arho[d_idx]
+        #d_rho[d_idx] = d_rho0[d_idx] + dt*d_arho[d_idx]
+        d_rho[d_idx] = d_rho0[d_idx] + dt * d_arho[d_idx]
 
         # magnitude of velocity squared
-        d_vmag2[d_idx] = (d_u[d_idx]*d_u[d_idx] + d_v[d_idx]*d_v[d_idx] +
-                          d_w[d_idx]*d_w[d_idx])
+        d_vmag2[d_idx] = d_u[d_idx]*d_u[d_idx] + d_v[d_idx]*d_v[d_idx] + d_w[d_idx]*d_w[d_idx]
+
+        d_vmag[d_idx] = sqrt( d_vmag2[d_idx] )
         
         # PST Correction
         d_x[d_idx] += d_DX[d_idx]

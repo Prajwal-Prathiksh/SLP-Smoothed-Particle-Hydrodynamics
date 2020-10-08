@@ -357,6 +357,8 @@ class PST(Equation):
         self.saveAllDRh = saveAllDRh
         self.boundedFlow = boundedFlow
 
+        self.eps = H**2 * 0.01
+
         self.CONST = -0.5*dt*H 
 
         super(PST, self).__init__(dest, sources)
@@ -369,7 +371,7 @@ class PST(Equation):
 
     def loop_all(
         self, d_idx, d_x, d_y, d_z, d_rho, d_DX, d_DY, d_DZ, d_DRh, d_lmda, 
-        d_gradlmda, s_x, s_y, s_z, s_rho, s_m, SPH_KERNEL, NBRS, N_NBRS, EPS
+        d_gradlmda, s_x, s_y, s_z, s_rho, s_m, SPH_KERNEL, NBRS, N_NBRS,
     ):
         n, i, j, k = declare('int', 4)
         n = self.dim
@@ -417,10 +419,10 @@ class PST(Equation):
                 ################################################################
 
                 # Calcuate fij
-                fij = self.R_coeff * pow((wij/(EPS+w_delta_s)), self.n_exp)
+                fij = self.R_coeff * pow((wij/(self.eps+w_delta_s)), self.n_exp)
 
                 # Calcuate multiplicative factor
-                fac = (1.0 + fij)*(mj/(rhoi+rhoj+EPS))
+                fac = (1.0 + fij)*(mj/(rhoi+rhoj+self.eps))
 
                 # Sum \delta r_i
                 for j in range(n):
@@ -453,7 +455,7 @@ class PST(Equation):
                 ni_norm = sqrt(gradlmda_i[0]*gradlmda_i[0] + gradlmda_i[1]*gradlmda_i[1] + gradlmda_i[2]*gradlmda_i[2])
 
                 for j in range(n):
-                    ni[j] = gradlmda_i[j] / (ni_norm + EPS)
+                    ni[j] = gradlmda_i[j] / (ni_norm + self.eps)
                     res[j] = 0.0
 
                 for j in range(n):

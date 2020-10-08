@@ -3,21 +3,38 @@
 ###########################################################################
 
 # PySPH base imports
-from pysph.base.kernels import WendlandQuintic, QuinticSpline, Gaussian, CubicSpline
+from pysph.base.kernels import (
+    WendlandQuintic, QuinticSpline, Gaussian, CubicSpline
+)
 from pysph.base.nnps import DomainManager
-from pysph.base.utils import get_particle_array_wcsph
+from pysph.base.utils import get_particle_array_wcsph, get_particle_array
 
 # PySPH solver imports
 from pysph.solver.application import Application
 from pysph.solver.solver import Solver
 
 # PySPH sph imports
-from pysph.sph.equation import Equation, Group
+from pysph.sph.equation import Equation, Group, MultiStageEquations
 from pysph.sph.wc.edac import ComputeAveragePressure
+from pysph.sph.basic_equations import SummationDensity
+
+from pysph.sph.wc.gtvf import (
+    ContinuityEquationGTVF, CorrectDensity, MomentumEquationPressureGradient,
+    MomentumEquationArtificialStress, MomentumEquationViscosity, 
+)
+
+from pysph.sph.wc.transport_velocity import (
+    StateEquation, SetWallVelocity, SolidWallPressureBC, 
+    MomentumEquationPressureGradient, MomentumEquationViscosity, 
+    SolidWallNoSlipBC, MomentumEquationArtificialStress
+)
 
 # SPH Integrator Imports
 from pysph.sph.integrator import EulerIntegrator, PECIntegrator
-from pysph.sph.integrator_step import EulerStep, WCSPHStep
+from pysph.sph.integrator_step import (
+    EulerStep, WCSPHStep, TransportVelocityStep
+)
+from pysph.sph.wc.gtvf import GTVFIntegrator, GTVFStep
 
 
 # Numpy import
@@ -32,7 +49,7 @@ sys.path.insert(1, 'E:\IIT Bombay\Winter Project - 2019\SLP-Smoothed-Particle-Hy
 
 # SPH Equation Imports
 from SLP.dpsph.equations import PST_PreStep_1, PST_PreStep_2, PST, AverageSpacing
-from SLP.dpsph.integrator import DPSPHStep
+from SLP.dpsph.integrator import DPSPHStep, TransportVelocityStep_DPSPH
 
 ### EOS
 from pysph.sph.basic_equations import IsothermalEOS 
@@ -40,7 +57,7 @@ from pysph.sph.wc.basic import TaitEOS
 
 ### Momentum Equation
 from SLP.dpsph.governing_equations import LaminarViscosityDeltaSPHPreStep   
-from pysph.sph.wc.viscosity import LaminarViscosityDeltaSPH
+from pysph.sph.wc.viscosity import LaminarViscosityDeltaSPH, LaminarViscosity
 from pysph.sph.wc.basic import  MomentumEquation, MomentumEquationDeltaSPH
 
 ### Continuity Equation
@@ -76,21 +93,95 @@ def exact_solution(U, b, t, x, y):
 # Tayloy Green Vortex - Application
 ################################################################################
 class Taylor_Green(Application):
-    def initialize(self):
+    def add_user_options(self, group):
+        group.add_argument(
+            "--init", action="store", type=str, default=None,
+            help="Initialize particle positions from given file."
+        )
+        group.add_argument(
+            "--perturb", action="store", type=float, dest="perturb", default=0,
+            help="Random perturbation of initial particles as a fraction "
+            "of dx (setting it to zero disables it, the default)."
+        )
+        group.add_argument(
+            "--nx", action="store", type=int, dest="nx", default=50,
+            help="Number of points along x direction. (default 50)"
+        )
+        group.add_argument(
+            "--re", action="store", type=float, dest="re", default=100,
+            help="Reynolds number (defaults to 100)."
+        )
+        group.add_argument(
+            "--hdx", action="store", type=float, dest="hdx", default=1.0,
+            help="Ratio h/dx."
+        )
+        group.add_argument(
+            "--pb-factor", action="store", type=float, dest="pb_factor",
+            default=1.0,
+            help="Use fraction of the background pressure (default: 1.0)."
+        )
+        corrections = ['', 'mixed', 'gradient', 'crksph']
+        group.add_argument(
+            "--kernel-correction", action="store", type=str,
+            dest='kernel_correction',
+            default='', help="Type of Kernel Correction", choices=corrections
+        )
+        group.add_argument(
+            "--remesh", action="store", type=int, dest="remesh", default=0,
+            help="Remeshing frequency (setting it to zero disables it)."
+        )
+        remesh_types = ['m4', 'sph']
+        group.add_argument(
+            "--remesh-eq", action="store", type=str, dest="remesh_eq",
+            default='m4', choices=remesh_types,
+            help="Remeshing strategy to use."
+        )
+        group.add_argument(
+            "--shift-freq", action="store", type=int, dest="shift_freq",
+            default=0,
+            help="Particle position shift frequency.(set zero to disable)."
+        )
+        shift_types = ['simple', 'fickian']
+        group.add_argument(
+            "--shift-kind", action="store", type=str, dest="shift_kind",
+            default='simple', choices=shift_types,
+            help="Use of fickian shift in positions."
+        )
+        group.add_argument(
+            "--shift-parameter", action="store", type=float,
+            dest="shift_parameter", default=None,
+            help="Constant used in shift, range for 'simple' is 0.01-0.1"
+            "range 'fickian' is 1-10."
+        )
+        group.add_argument(
+            "--shift-correct-vel", action="store_true",
+            dest="correct_vel", default=False,
+            help="Correct velocities after shifting (defaults to false)."
+        )
+        group.add_argument(
+            "--tvf-correct", action="store_true", default=False,
+            dest="tvf_correct", help="TVF correction"
+        )
+
+    def consume_user_options(self):
         '''
         Initialize simulation paramters
         '''
-
-        # Simulation Parameters
-        self.nx = 50
-        self.perturb = 0.2 # Perturbation factor
-        self.re = 100.0
         self.U = 1.0
         self.L = 1.0
         self.rho0 = 1.0
-
-        self.c0 = 10.0
+        self.c0 = 10 * self.U
+        self.p0 = self.c0**2 * self.rho0
         self.hdx = 2.0
+
+        self.nx = self.options.nx
+        self.perturb = self.options.perturb # Perturbation factor
+        self.re = self.options.re
+
+        self.dx = dx = self.L / self.nx
+        self.volume = dx * dx
+        self.hdx = self.options.hdx
+        self.kernel_correction = self.options.kernel_correction
 
         # Calculate simulation parameters
         self.nu = self.L * self.U/self.re
@@ -110,11 +201,13 @@ class Taylor_Green(Application):
         self.dt = min(dt_cfl, dt_viscous, dt_force)
         self.tf = 2.0
 
-        self.PST = True
         self.PSR_Rh = 0.05
         self.PST_R_coeff = 0.2 #1e-4
         self.PST_n_exp = 4.0 #3.0
-        self.PST_Uc0 = 1.0
+        self.PST_Uc0 = 10.0
+        self.PST_boundedFlow = True
+
+        self.TVF_correction = self.options.tvf_correct
 
         # Print parameters
         print('dx : ', self.dx)
@@ -126,42 +219,55 @@ class Taylor_Green(Application):
         '''
         dx = self.dx
         L = self.L
-        _x = np.arange(dx/2, L, dx)
+        _x = np.arange(dx / 2, L, dx)
+        x, y = np.meshgrid(_x, _x)
 
-        # Fluid
-        x0, y0 = np.meshgrid(_x, _x)
-
-        if self.perturb > 0:
+        if self.options.perturb > 0:
             np.random.seed(1)
-            factor = dx * self.perturb
-            x0 += np.random.random(x0.shape) * factor
-            y0 += np.random.random(x0.shape) * factor
+            factor = dx * self.options.perturb
+            x += np.random.random(x.shape) * factor
+            y += np.random.random(x.shape) * factor
         
-        b = -8.0-pi*pi/self.re
+        m = self.volume * self.rho0
+        h = self.hdx * dx
+        re = self.options.re
+        b = -8.0*pi*pi / re
+        u0, v0, p0 = exact_solution(U=self.U, b=b, t=0, x=x, y=y)
+        color0 = cos(2*pi*x) * cos(4*pi*y)
 
-        u0, v0, p0 = exact_solution(U=self.U, b=b, t=0, x=x0, y=y0)
+        # create the arrays
+        fluid = get_particle_array(name='fluid', x=x, y=y, m=m, h=h, u=u0,
+                                   v=v0, rho=self.rho0, p=p0, color=color0)
 
-        pa_fluid = get_particle_array_wcsph(
-            name='fluid',x = x0, y=y0, u=u0, v=v0, p=p0, rho = self.rho0, 
-            m=self.m0, h=self.h0
-        )
-        pa_fluid.add_property('m_mat', stride=9)
-        pa_fluid.add_property('gradrho', stride=3)
-        pa_fluid.add_property('gradlmda', stride=3)
+        fluid.add_property('m_mat', stride=9)
+        fluid.add_property('gradrho', stride=3)
+        fluid.add_property('gradlmda', stride=3)
+        #fluid.add_property('gradvhat', stride=9)
+        #fluid.add_property('sigma', stride=9)
+        #fluid.add_property('asigma', stride=9)
         
         add_props = [
-            'lmda', 'delta_s', 'rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 
-            'ax', 'ay', 'az', 'DRh', 'DY', 'DX', 'DZ', 'vmax'
+            'lmda', 'rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 'ax', 'ay', 
+            'az', 'DRh', 'DY', 'DX', 'DZ', 'uhat', 'vhat', 'what', 'auhat', 
+            'avhat', 'awhat', 'vmag2', 'V', 'arho', 'vmag', 
+            #'rhodiv', 'p0', 'arho0'
         ]
         for i in add_props:
-            pa_fluid.add_property(i)
+            fluid.add_property(i)
 
-        pa_fluid.set_output_arrays([
-            'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'm', 'h', 'pid', 'gid', 'tag', 
-            'p', 'lmda', 'delta_s', 'DRh', 'vmax'
-        ])
-        pa_fluid.lmda[:] = 1.0
-        return [pa_fluid]
+        fluid.set_output_arrays(
+            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 'vmag', 
+            'vmag2', 'pid', 'gid', 'tag', 'DRh', 'lmda']
+        )
+
+        # setup the particle properties
+        volume = dx * dx
+
+        # mass is set to get the reference density of rho0
+        fluid.V[:] = 1. / volume
+        fluid.lmda[:] = 1.0
+
+        return [fluid]
 
     def create_domain(self):
         '''
@@ -177,12 +283,13 @@ class Taylor_Green(Application):
         '''
         Define solver
         '''
-        kernel = CubicSpline(dim=2) #WendlandQuintic(dim=2) #Gaussian(dim=2) #QuinticSpline(dim=2) 
+        kernel = QuinticSpline(dim=2) 
+
+        integrator = PECIntegrator(fluid = DPSPHStep())
         
-        if self.PST == False:
-            integrator = PECIntegrator(fluid = WCSPHStep())
-        elif self.PST == True:
-            integrator = PECIntegrator(fluid = DPSPHStep())
+        if self.TVF_correction == True:
+            integrator = PECIntegrator(fluid = TransportVelocityStep_DPSPH())
+            #integrator = GTVFIntegrator(fluid=GTVFStep())
 
         solver = Solver(
             kernel=kernel, dim=2, integrator=integrator, dt=self.dt, tf=self.tf, 
@@ -195,62 +302,61 @@ class Taylor_Green(Application):
         '''
         Set-up governing equations
         '''
-        if self.PST == False:
+
+        equations = [
+            Group(equations=[
+                IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
+                GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2),
+            ], real=False),
+
+            Group(equations=[
+                GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1),
+                ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+                #PST_PreStep_1(dest='fluid', sources=['fluid'], dim=2, boundedFlow=self.PST_boundedFlow),
+                #PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2, H=self.h0, boundedFlow=self.PST_boundedFlow),
+            ], real=False),
+
+            Group(equations=[
+                PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.PST_Uc0, Rh=self.PSR_Rh, saveAllDRh=True, R_coeff=self.PST_R_coeff, n_exp=self.PST_n_exp, boundedFlow=self.PST_boundedFlow),
+                ContinuityEquation(dest='fluid', sources=['fluid']),                 
+                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1),
+                LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
+                #LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
+                LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu),
+                Spatial_Acceleration(dest='fluid', sources=['fluid']),
+            ], real=True),
+        ]
+
+        if self.TVF_correction == True: 
             equations = [
                 Group(equations=[
-                    IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
                     GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2),
-                ],real=False
-                ),
-
-                Group(equations=[
-                    GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
+                    GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1),
                     ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
-                ],real=True
-                ),
+                    #PST_PreStep_1(dest='fluid', sources=['fluid'], dim=2, boundedFlow=self.PST_boundedFlow),
+                    #PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2, H=self.h0, boundedFlow=self.PST_boundedFlow),
+                ], real=False),
 
                 Group(equations=[
+                    PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.PST_Uc0, Rh=self.PSR_Rh, saveAllDRh=True, R_coeff=self.PST_R_coeff, n_exp=self.PST_n_exp, boundedFlow=self.PST_boundedFlow),
                     ContinuityEquation(dest='fluid', sources=['fluid']),                 
-                    ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1), 
-                    #MomentumEquation(dest='fluid', sources=['fluid'], c0=self.c0, alpha=0.0, beta=0.0, gx=0.0, gy=0.0, gz=0.0, tensile_correction=False), 
-                    #MomentumEquationDeltaSPH(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, alpha=0.0), 
-                    LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
-                    LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu), 
-                    Spatial_Acceleration(dest='fluid', sources=['fluid']),                
-                    #XSPHCorrection(dest='fluid', sources=['fluid'], eps=0.5),            
-                ],real=True
-                ),
-            ]
-    
-        elif self.PST == True:
-            equations = [
-                Group(equations=[                
-                    IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
-                    GradientCorrectionPreStep(dest='fluid', sources=['fluid'], dim=2),
-                    PST_PreStep_1(dest='fluid', sources=['fluid'], dim=2),
-                    ######AverageSpacing(dest='fluid', sources=['fluid'], dim=2),            
-                ],real=False
-                ),
+                    ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1),
+                ], real=True),
 
                 Group(equations=[
-                    GradientCorrection(dest='fluid', sources=['fluid'], dim=2, tol=0.1), 
-                    ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid']),
-                    PST_PreStep_2(dest='fluid', sources=['fluid'], dim=2, H=self.h0),
-                    PST(dest='fluid', sources=['fluid'], dim=2, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.PST_Uc0, Rh=self.PSR_Rh, saveAllDRh=True, R_coeff=self.PST_R_coeff, n_exp=self.PST_n_exp),            
-                ],real=True
-                ),
+                    StateEquation(dest='fluid', sources=None, p0=self.p0, rho0=self.rho0),
+                    #IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
+                ], real=False),
 
                 Group(equations=[
-                    ContinuityEquation(dest='fluid', sources=['fluid']),                 
-                    ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid'], c0=self.c0, delta=0.1), 
-                    #MomentumEquation(dest='fluid', sources=['fluid'], c0=self.c0, alpha=0.0, beta=0.0, gx=0.0, gy=0.0, gz=0.0, tensile_correction=False), 
-                    #MomentumEquationDeltaSPH(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, alpha=0.0), 
+                    MomentumEquationPressureGradient(dest='fluid', sources=['fluid'], pb=self.p0),  
+                    #MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu), 
+                    #MomentumEquationArtificialStress(dest='fluid', sources=['fluid']),
                     LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
-                    LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu), 
-                    Spatial_Acceleration(dest='fluid', sources=['fluid']),                
-                    #XSPHCorrection(dest='fluid', sources=['fluid'], eps=0.5),            
-                ],real=True
-                ),
+                    #LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
+                    LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu),
+                      
+                ], real=True),
             ]
 
         return equations

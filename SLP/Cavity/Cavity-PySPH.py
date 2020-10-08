@@ -117,6 +117,7 @@ class Cavity(Application):
         self.re = self.options.re
         h0 = hdx * self.dx
         self.nu = Umax * L / self.re
+        ##### Look into CFL number for RK-2 (h0 -> dx if not working), 0.25 -> 0.1
         dt_cfl = 0.25 * h0 / (c0 + Umax)
         dt_viscous = 0.125 * h0**2 / self.nu
         dt_force = 1.0
@@ -130,7 +131,7 @@ class Cavity(Application):
         self.PSR_Rh = 0.05
         self.PST_R_coeff = 0.2 #1e-4
         self.PST_n_exp = 4.0 #3.0
-        self.PST_Uc0 = 1.0
+        self.PST_Uc0 = 10.0
         self.PST_boundedFlow = True
         
     def create_particles(self):
@@ -202,26 +203,25 @@ class Cavity(Application):
             solid.add_property(i)
 
         add_props = [
-            'rho0', 'x0', 'y0', 'z0', 'lmda', 'gradlmda', 'DX', 'DY', 'DZ', 
-            'DRh'
+            'rho0', 'x0', 'y0', 'z0', 'lmda', 'DX', 'DY', 'DZ', 'DRh'
             ]
         for i in add_props:
             fluid.add_property(i)
             solid.add_property(i)
         fluid.add_property('m_mat', stride=9)
         fluid.add_property('gradrho', stride=3)
+        fluid.add_property('gradlmda', stride=3)
         solid.add_property('m_mat', stride=9)
         solid.add_property('gradrho', stride=3)
+        solid.add_property('gradlmda', stride=3)
 
 
         fluid.set_output_arrays(
-            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 'au', 'av',
-            'aw', 'V', 'vmag2', 'pid', 'gid', 'tag', 'lmda', 'DRh', 'DX', 'DY', 
-            'DZ']
+            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 'DRh', 'au', 
+            'av', 'aw', 'vmag2', 'pid', 'gid', 'tag',]
         )
         solid.set_output_arrays(
-            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 'V', 'pid', 
-            'gid', 'tag']
+            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'pid', 'gid', 'tag']
         )
 
         fluid.lmda[:] = 1.0
@@ -289,7 +289,7 @@ class Cavity(Application):
 
             Group(equations=[
                 ContinuityEquation(dest='fluid', sources=['fluid', 'solid']),                 
-                ContinuityEquationDeltaSPH(damp_fac=0.2*0.5, dest='fluid', sources=['fluid', 'solid'], c0=self.c0, delta=0.1),
+                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid', 'solid'], c0=self.c0, delta=0.1),
                 #SummationDensity(dest='fluid', sources=['fluid', 'solid'])
             ], real=False),
 
@@ -299,7 +299,7 @@ class Cavity(Application):
             ], real=False),
 
             Group(equations=[
-                SolidWallPressureBC(b=1.01, dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0)
+                SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0)
             ], real=False),
 
             Group(equations=[
