@@ -41,6 +41,7 @@ import os
 import sys
 #sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics')
 sys.path.insert(1, 'E:\\IIT Bombay\\Winter Project - 2019\\SLP-Smoothed-Particle-Hydrodynamics')
+sys.path.insert(1, 'D:\Prajwal\Winter_Project\SLP-Smoothed-Particle-Hydrodynamics')
 
 # SPH Equation Imports
 from SLP.dpsph.equations import (
@@ -311,7 +312,7 @@ class Cavity(Application):
                 MomentumEquationPressureGradient(dest='fluid', sources=['fluid','solid'], pb=self.p0),  
                 #MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
                 LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid',]),
-                #LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
+                LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
                 LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid',], dim=2, rho0=self.rho0, nu=self.nu), 
                 SolidWallNoSlipBC(dest='fluid', sources=['solid'], nu=self.nu), 
                 #MomentumEquationArtificialStress(dest='fluid', sources=['fluid']),  
