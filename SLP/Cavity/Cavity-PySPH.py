@@ -54,7 +54,7 @@ from pysph.sph.wc.basic import TaitEOS
 
 ### Momentum Equation
 from SLP.dpsph.governing_equations import LaminarViscosityDeltaSPHPreStep   
-from pysph.sph.wc.viscosity import LaminarViscosityDeltaSPH
+from pysph.sph.wc.viscosity import LaminarViscosityDeltaSPH, LaminarViscosity
 from pysph.sph.wc.basic import  MomentumEquation, MomentumEquationDeltaSPH
 
 ### Continuity Equation
@@ -104,6 +104,10 @@ class Cavity(Application):
             default=None,
             help="Average velocities over these many saved timesteps."
         )
+        group.add_argument(
+            "--visc-correct", action="store_true", dest="visc_correct", default=False, 
+            help="Viscosity correction"
+        )
 
     def consume_user_options(self):
         '''
@@ -133,6 +137,7 @@ class Cavity(Application):
         self.PST_n_exp = 4.0 #3.0
         self.PST_Uc0 = 10.0
         self.PST_boundedFlow = True
+        self.visc_correct = 0.0 if self.options.visc_correct == False else self.nu
         
     def create_particles(self):
         dx = self.dx
@@ -294,7 +299,7 @@ class Cavity(Application):
 
             Group(equations=[
                 StateEquation(dest='fluid', sources=None, p0=self.p0, rho0=self.rho0),
-                #IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
+                #IsothermalEOS(dest='fluid', sources=None, rho0=self.rho0, c0=self.c0, p0=0.0),
                 SetWallVelocity(dest='solid', sources=['fluid'])
             ], real=False),
 
@@ -304,10 +309,10 @@ class Cavity(Application):
 
             Group(equations=[
                 MomentumEquationPressureGradient(dest='fluid', sources=['fluid','solid'], pb=self.p0),  
-                LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid', 'solid']),
+                MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
+                #LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid',]),
                 #LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.visc_correct),
-                LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid', 'solid'], dim=2, rho0=self.rho0, nu=self.nu),
-                #MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu), 
+                LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid',], dim=2, rho0=self.rho0, nu=self.nu), 
                 SolidWallNoSlipBC(dest='fluid', sources=['solid'], nu=self.nu), 
                 #MomentumEquationArtificialStress(dest='fluid', sources=['fluid']),  
             ], real=True), 
