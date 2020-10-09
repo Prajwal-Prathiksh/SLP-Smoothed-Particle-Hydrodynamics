@@ -46,6 +46,7 @@ import os
 import sys
 sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics')
 sys.path.insert(1, 'E:\IIT Bombay\Winter Project - 2019\SLP-Smoothed-Particle-Hydrodynamics')
+sys.path.insert(1, 'D:\Prajwal\Winter_Project\SLP-Smoothed-Particle-Hydrodynamics')
 
 # SPH Equation Imports
 from SLP.dpsph.equations import PST_PreStep_1, PST_PreStep_2, PST, AverageSpacing
