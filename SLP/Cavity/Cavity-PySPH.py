@@ -291,7 +291,7 @@ class Cavity(Application):
             ], real=False),
 
             Group(equations=[
-                PST(dest='fluid', sources=['fluid','solid'], dim=2, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.PST_Uc0, saveAllDRh=True, boundedFlow=self.PST_boundedFlow),
+                #PST(dest='fluid', sources=['fluid','solid'], dim=2, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.PST_Uc0, saveAllDRh=True, boundedFlow=self.PST_boundedFlow),
                 ContinuityEquation(dest='fluid', sources=['fluid', 'solid']),                 
                 ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid', 'solid'], c0=self.c0, delta=0.1),
                 #SummationDensity(dest='fluid', sources=['fluid', 'solid'])
