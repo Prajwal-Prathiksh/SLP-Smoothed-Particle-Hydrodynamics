@@ -1,1 +1,0 @@
-{"fname": "taylor_green", "output_dir": "E:\\IIT Bombay\\Winter Project - 2019\\SLP-Smoothed-Particle-Hydrodynamics\\SLP\\Taylor Green Vortex\\taylor_green_output", "args": ["--openmp", "--perturb", "0.2", "--scheme", "gtvf"], "completed": true, "cpu_time": 168.55435299873352}
