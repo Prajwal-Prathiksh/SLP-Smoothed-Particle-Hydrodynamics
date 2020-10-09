@@ -203,7 +203,7 @@ class Cavity(Application):
             solid.add_property(i)
 
         add_props = [
-            'rho0', 'x0', 'y0', 'z0', 'lmda', 'DX', 'DY', 'DZ', 'DRh'
+            'rho0', 'x0', 'y0', 'z0', 'lmda', 'DX', 'DY', 'DZ', 'DRh', 'vmag'
             ]
         for i in add_props:
             fluid.add_property(i)
