@@ -248,15 +248,11 @@ class Taylor_Green(Application):
         fluid.add_property('m_mat', stride=9)
         fluid.add_property('gradrho', stride=3)
         fluid.add_property('gradlmda', stride=3)
-        #fluid.add_property('gradvhat', stride=9)
-        #fluid.add_property('sigma', stride=9)
-        #fluid.add_property('asigma', stride=9)
         
         add_props = [
             'lmda', 'rho0', 'u0', 'v0', 'w0', 'x0', 'y0', 'z0', 'ax', 'ay', 
             'az', 'DRh', 'DY', 'DX', 'DZ', 'uhat', 'vhat', 'what', 'auhat', 
-            'avhat', 'awhat', 'vmag2', 'V', 'arho', 'vmag', 
-            #'rhodiv', 'p0', 'arho0'
+            'avhat', 'awhat', 'vmag2', 'V', 'arho', 'vmag',
         ]
         for i in add_props:
             fluid.add_property(i)

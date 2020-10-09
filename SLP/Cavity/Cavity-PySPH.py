@@ -217,8 +217,8 @@ class Cavity(Application):
 
 
         fluid.set_output_arrays(
-            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 'DRh', 'au', 
-            'av', 'aw', 'vmag2', 'pid', 'gid', 'tag',]
+            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 'DRh', 'vmag',
+            'vmag2', 'pid', 'gid', 'tag',]
         )
         solid.set_output_arrays(
             ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'pid', 'gid', 'tag']
@@ -239,8 +239,7 @@ class Cavity(Application):
         '''
         kernel = QuinticSpline(dim=2)
 
-        integrator = PECIntegrator(fluid=TransportVelocityStep_DPSPH()) 
-        #PECIntegrator(fluid=TransportVelocityStep())
+        integrator = PECIntegrator(fluid = TransportVelocityStep_DPSPH())
 
         solver = Solver(
             kernel=kernel, dim=2, integrator=integrator, dt=self.dt, tf=self.tf, 
@@ -282,19 +281,20 @@ class Cavity(Application):
                 GradientCorrectionPreStep(dest='fluid', sources=['fluid', 'solid'], dim=2),
                 GradientCorrection(dest='fluid', sources=['fluid', 'solid'], dim=2, tol=0.1),
                 ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid', 'solid']),
-                PST_PreStep_1(dest='fluid', sources=['fluid', 'solid'], dim=2, boundedFlow=self.PST_boundedFlow),
-                PST_PreStep_2(dest='fluid', sources=['fluid', 'solid'], dim=2, H=self.h0, boundedFlow=self.PST_boundedFlow),
-                PST(dest='fluid', sources=['fluid', 'solid'], dim=2, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.PST_Uc0, Rh=self.PSR_Rh, saveAllDRh=True, R_coeff=self.PST_R_coeff, n_exp=self.PST_n_exp, boundedFlow=self.PST_boundedFlow),
+                #PST_PreStep_1(dest='fluid', sources=['fluid', 'solid'], dim=2, boundedFlow=self.PST_boundedFlow),
+                #PST_PreStep_2(dest='fluid', sources=['fluid', 'solid'], dim=2, H=self.h0, boundedFlow=self.PST_boundedFlow),
             ], real=False),
 
             Group(equations=[
+                PST(dest='fluid', sources=['fluid', 'solid'], dim=2, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.PST_Uc0, Rh=self.PSR_Rh, saveAllDRh=True, R_coeff=self.PST_R_coeff, n_exp=self.PST_n_exp, boundedFlow=self.PST_boundedFlow),
                 ContinuityEquation(dest='fluid', sources=['fluid', 'solid']),                 
                 ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid', 'solid'], c0=self.c0, delta=0.1),
                 #SummationDensity(dest='fluid', sources=['fluid', 'solid'])
             ], real=False),
 
             Group(equations=[
-                IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
+                StateEquation(dest='fluid', sources=None, p0=self.p0, rho0=self.rho0),
+                #IsothermalEOS(dest='fluid', sources=['fluid'], rho0=self.rho0, c0=self.c0, p0=0.0),
                 SetWallVelocity(dest='solid', sources=['fluid'])
             ], real=False),
 
@@ -304,8 +304,9 @@ class Cavity(Application):
 
             Group(equations=[
                 MomentumEquationPressureGradient(dest='fluid', sources=['fluid','solid'], pb=self.p0),  
-                LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid']),
-                LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid'], dim=2, rho0=self.rho0, nu=self.nu),
+                LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid', 'solid']),
+                #LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.visc_correct),
+                LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid', 'solid'], dim=2, rho0=self.rho0, nu=self.nu),
                 #MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu), 
                 SolidWallNoSlipBC(dest='fluid', sources=['solid'], nu=self.nu), 
                 #MomentumEquationArtificialStress(dest='fluid', sources=['fluid']),  
