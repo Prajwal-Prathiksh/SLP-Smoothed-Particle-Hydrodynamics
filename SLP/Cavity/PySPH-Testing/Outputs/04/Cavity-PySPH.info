@@ -1,1 +1,0 @@
-{"fname": "Cavity-PySPH", "output_dir": "E:\\IIT Bombay\\Winter Project - 2019\\SLP-Smoothed-Particle-Hydrodynamics\\SLP\\Cavity\\04", "args": ["--openmp", "-d", "04"], "completed": true, "cpu_time": 199.22397756576538}
