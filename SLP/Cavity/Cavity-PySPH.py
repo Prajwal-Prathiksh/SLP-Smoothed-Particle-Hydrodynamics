@@ -106,8 +106,8 @@ class Cavity(Application):
             help="Average velocities over these many saved timesteps."
         )
         group.add_argument(
-            "--visc-correct", action="store_true", dest="visc_correct", default=False, 
-            help="Viscosity correction"
+            "--re-correct", action="store_true", dest="re_correct", default=False, 
+            help="Reynold's number corrrection"
         )
 
     def consume_user_options(self):
@@ -122,8 +122,10 @@ class Cavity(Application):
         self.re = self.options.re
         h0 = hdx * self.dx
         self.nu = Umax * L / self.re
+
+        self.re_correct = 0.5 if self.options.re_correct == True else 1.0
         ##### Look into CFL number for RK-2 (h0 -> dx if not working), 0.25 -> 0.1
-        dt_cfl = 0.1 * h0 / (c0 + Umax)
+        dt_cfl = self.re_correct * 0.1 * h0 / (c0 + Umax)
         dt_viscous = 0.125 * h0**2 / self.nu
         dt_force = 1.0
         self.tf = 10.0
@@ -138,7 +140,6 @@ class Cavity(Application):
         self.PST_n_exp = 4.0 #3.0
         self.PST_Uc0 = 10.0
         self.PST_boundedFlow = True
-        self.visc_correct = 0.0 if self.options.visc_correct == False else self.nu
         
     def create_particles(self):
         dx = self.dx
@@ -312,7 +313,7 @@ class Cavity(Application):
                 MomentumEquationPressureGradient(dest='fluid', sources=['fluid','solid'], pb=self.p0),  
                 #MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
                 LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid',]),
-                LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
+                #LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
                 LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid',], dim=2, rho0=self.rho0, nu=self.nu), 
                 SolidWallNoSlipBC(dest='fluid', sources=['solid'], nu=self.nu), 
                 #MomentumEquationArtificialStress(dest='fluid', sources=['fluid']),  
