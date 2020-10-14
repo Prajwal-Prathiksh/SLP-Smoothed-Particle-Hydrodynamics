@@ -270,17 +270,11 @@ class PST(Equation):
         dx : float
             Initial particle spacing (:math:`\Delta x`)
 
-        dim : integer
-            Number of dimensions
-
         Uc0 : float
             :math:`\frac{U}{c_o}` value of the system
 
         boundedFlow : boolean
             If True, flow has free surface/s
-
-        cfl : float, default = 0.5
-            CFL value
 
         R_coeff : float, default = 0.2
             Artificial pressure coefficient
@@ -292,16 +286,10 @@ class PST(Equation):
             Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during 
             particle shifting 
             (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
-        
-        saveAllDRh : boolean, default = False
-            If True, stores the :math:`\frac{|\delta r_i|}{h}` value of all 
-            particles in the particle variable 'DRh'. 
-            If False, stores the :math:`\frac{|\delta r_i|}{h}` value only 
-            if the condition mentioned above is satisfied
     """
     def __init__(
-        self, dest, sources, H, dt, dx, dim, Uc0, boundedFlow, cfl=0.5, 
-        R_coeff=0.2, n_exp=4.0, Rh=0.05, saveAllDRh=False
+        self, dest, sources, H, dt, dx, Uc0, boundedFlow, R_coeff=0.2, n_exp=4.0,
+        Rh=0.05,
     ):
         r'''
             Parameters:
@@ -315,14 +303,8 @@ class PST(Equation):
             dx : float
                 Initial particle spacing (:math:`\Delta x`)
 
-            dim : integer
-                Number of dimensions
-
             Uc0 : float
                 :math:`\frac{U}{c_o}` value of the system
-
-            cfl : float, default = 0.5
-                CFL value
 
             R_coeff : float, default = 0.2
                 Artificial pressure coefficient
@@ -334,31 +316,19 @@ class PST(Equation):
                 Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during 
                 particle shifting 
                 (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
-            
-            saveAllDRh : boolean, default = False
-                If True, stores the :math:`\frac{|\delta r_i|}{h}` value of all 
-                particles in the particle variable 'DRh'. 
-                If False, stores the :math:`\frac{|\delta r_i|}{h}` value only 
-                if the condition mentioned above is satisfied
 
             boundedFlow : boolean, default = False
                 If True, flow has free surface/s
         '''       
         
-        self.dim = dim
         self.R_coeff = R_coeff
         self.n_exp = n_exp
         self.H = H
-        self.dt = dt
         self.dx = dx
-        self.cfl = cfl
         self.Uc0 = Uc0
         self.Rh = Rh
-        self.saveAllDRh = saveAllDRh
         self.boundedFlow = boundedFlow
-
         self.eps = H**2 * 0.01
-
         self.CONST = -0.5*dt*H 
 
         super(PST, self).__init__(dest, sources)
@@ -369,6 +339,48 @@ class PST(Equation):
         d_DZ[d_idx] = 0.0
         d_DRh[d_idx] = 0.0
 
+    def loop(
+        self, d_idx, d_rho, d_DX, d_DY, d_DZ, s_idx, s_rho, s_m, XIJ, DWIJ, WIJ,
+        SPH_KERNEL
+    ):
+        rhoi = d_rho[d_idx]
+        rhoj = s_rho[s_idx]
+        mj = s_m[s_idx]
+
+        # Calculate Kernel values
+        w_delta_s = SPH_KERNEL.kernel(XIJ, self.dx, self.H)
+
+        ################################################################
+        # Calculate \delta r_i
+        ################################################################
+
+        # Calcuate fij
+        fij = self.R_coeff * pow((WIJ/(self.eps+w_delta_s)), self.n_exp)
+
+        # Calcuate multiplicative factor
+        fac = (1.0 + fij)*(mj/(rhoi+rhoj+self.eps))
+
+        # Sum \delta r_i
+        d_DX[d_idx] += self.CONST * self.Uc0 * fac * DWIJ[0]
+        d_DY[d_idx] += self.CONST * self.Uc0 * fac * DWIJ[1]
+        d_DZ[d_idx] += self.CONST * self.Uc0 * fac * DWIJ[2] 
+
+    def post_loop(self, d_idx, d_lmda, d_DX, d_DY, d_DZ, d_DRh):
+
+        lmdai = d_lmda[d_idx]
+        if self.boundedFlow == True or lmdai > 0.75:
+
+            rh = sqrt(d_DX[d_idx]*d_DX[d_idx] + d_DY[d_idx]*d_DY[d_idx] + d_DZ[d_idx]*d_DZ[d_idx]) / self.H
+            d_DRh[d_idx] = rh
+
+            if rh > self.Rh:
+                # Check Rh condition and correct the values
+                d_DX[d_idx] = d_DX[d_idx] * self.Rh / rh
+                d_DY[d_idx] = d_DY[d_idx] * self.Rh / rh
+                d_DZ[d_idx] = d_DZ[d_idx] * self.Rh / rh
+                d_DRh[d_idx] = self.Rh
+
+'''
     def loop_all(
         self, d_idx, d_x, d_y, d_z, d_rho, d_DX, d_DY, d_DZ, d_DRh, d_lmda, 
         d_gradlmda, s_x, s_y, s_z, s_rho, s_m, SPH_KERNEL, NBRS, N_NBRS,
@@ -420,6 +432,7 @@ class PST(Equation):
 
                 # Calcuate fij
                 fij = self.R_coeff * pow((wij/(self.eps+w_delta_s)), self.n_exp)
+                #fij = 0.0
 
                 # Calcuate multiplicative factor
                 fac = (1.0 + fij)*(mj/(rhoi+rhoj+self.eps))
@@ -436,16 +449,19 @@ class PST(Equation):
 
                 if rh > self.Rh:
                     # Check Rh condition
-                    d_DX[d_idx] = 0.0
-                    d_DY[d_idx] = 0.0
-                    d_DZ[d_idx] = 0.0
+                    d_DX[d_idx] += deltaR[0] * self.Rh / rh
+                    d_DY[d_idx] += deltaR[1] * self.Rh / rh
+                    d_DZ[d_idx] += deltaR[2] * self.Rh / rh
+                    print(rh)
                     if self.saveAllDRh == True:    
-                        d_DRh[d_idx] = rh
+                        d_DRh[d_idx] += rh
                 else:
-                    d_DX[d_idx] = deltaR[0]
-                    d_DY[d_idx] = deltaR[1]
-                    d_DZ[d_idx] = deltaR[2]
-                    d_DRh[d_idx] = rh
+                    d_DX[d_idx] += deltaR[0]
+                    d_DY[d_idx] += deltaR[1]
+                    d_DZ[d_idx] += deltaR[2]
+                    d_DRh[d_idx] += rh
+                    print(rh)
+
             
             elif self.boundedFlow == False and lmdai <= 0.75:
                 ##################
@@ -476,16 +492,16 @@ class PST(Equation):
 
                 if rh > self.Rh:
                     # Check Rh condition
-                    d_DX[d_idx] = 0.0
-                    d_DY[d_idx] = 0.0
-                    d_DZ[d_idx] = 0.0
+                    d_DX[d_idx] += 0.0
+                    d_DY[d_idx] += 0.0
+                    d_DZ[d_idx] += 0.0
                     if self.saveAllDRh == True:    
-                        d_DRh[d_idx] = rh
+                        d_DRh[d_idx] += rh
                 else:
-                    d_DX[d_idx] = deltaR[0]
-                    d_DY[d_idx] = deltaR[1]
-                    d_DZ[d_idx] = deltaR[2]
-                    d_DRh[d_idx] = rh
+                    d_DX[d_idx] += deltaR[0]
+                    d_DY[d_idx] += deltaR[1]
+                    d_DZ[d_idx] += deltaR[2]
+                    d_DRh[d_idx] += rh
 
         else:
             ##################
@@ -496,3 +512,4 @@ class PST(Equation):
             d_DY[d_idx] = 0.0
             d_DZ[d_idx] = 0.0
             d_DRh[d_idx] = 0.0
+'''

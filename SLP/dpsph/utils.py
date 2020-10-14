@@ -34,18 +34,22 @@ def get_particle_array_dpsph(constants=None, **props):
     """
 
     dpsph_props = [
-        'arho', 'L00', 'L01', 'L10', 'L11', 'lmda', 'delta_p', 'grad_rho1', 
-        'grad_rho2', 'DX', 'DY', 'DRh'
+        'rho0', 'x0', 'y0', 'z0', 'lmda', 'DX', 'DY', 'DZ', 'DRh', 'vmag', 
+        'vmag2', 'arho'
     ]
 
     pa = get_particle_array(
         constants=constants, additional_props=dpsph_props, **props
     )
 
+    pa.add_property('m_mat', stride=9)
+    pa.add_property('gradrho', stride=3)
+    pa.add_property('gradlmda', stride=3)
+
     # default property arrays to save out.
     pa.set_output_arrays([
-        'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'm', 'h', 'lmda', 'delta_p',
-        'DX', 'DY', 'DRh','pid', 'gid'
+        'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 'DRh', 'vmag', 
+        'vmag2', 'lmda', 'pid', 'gid', 'tag', 
     ])
 
     return pa

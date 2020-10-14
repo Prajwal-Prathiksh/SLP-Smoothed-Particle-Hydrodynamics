@@ -40,7 +40,7 @@ import os
 # Include path
 import sys
 #sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-Hydrodynamics')
-sys.path.insert(1, 'E:\\IIT Bombay\\Winter Project - 2019\\SLP-Smoothed-Particle-Hydrodynamics')
+sys.path.insert(1, 'E:\IIT Bombay - Miscellaneous\Winter Project\SLP-Smoothed-Particle-Hydrodynamics')
 sys.path.insert(1, 'D:\Prajwal\Winter_Project\SLP-Smoothed-Particle-Hydrodynamics')
 
 # SPH Equation Imports
@@ -106,14 +106,15 @@ class Cavity(Application):
             help="Average velocities over these many saved timesteps."
         )
         group.add_argument(
-            "--re-correct", action="store_true", dest="re_correct", default=False, 
-            help="Reynold's number corrrection"
+            "--ntf", action="store", type=int, dest="ntf", default=-1,
+            help="Number of timesteps"
         )
 
     def consume_user_options(self):
         '''
         Initialize simulation paramters
         '''
+        self.dim = 2
         self.nx = self.options.nx
         if self.options.n_avg is not None:
             self.n_avg = self.options.n_avg
@@ -122,14 +123,16 @@ class Cavity(Application):
         self.re = self.options.re
         h0 = hdx * self.dx
         self.nu = Umax * L / self.re
+        self.Umax = Umax
 
-        self.re_correct = 0.5 if self.options.re_correct == True else 1.0
         ##### Look into CFL number for RK-2 (h0 -> dx if not working), 0.25 -> 0.1
-        dt_cfl = self.re_correct * 0.1 * h0 / (c0 + Umax)
+        dt_cfl = 0.25 * h0 / (c0 + Umax)
         dt_viscous = 0.125 * h0**2 / self.nu
         dt_force = 1.0
-        self.tf = 10.0
         self.dt = min(dt_cfl, dt_viscous, dt_force)
+        self.tf = 10.0 
+        if self.options.ntf != -1:
+            self.tf = self.options.ntf * self.dt
         self.h0 = h0
         self.rho0 = rho0
         self.p0 = p0
@@ -215,6 +218,7 @@ class Cavity(Application):
         for i in add_props:
             fluid.add_property(i)
             solid.add_property(i)
+
         fluid.add_property('m_mat', stride=9)
         fluid.add_property('gradrho', stride=3)
         fluid.add_property('gradlmda', stride=3)
@@ -232,10 +236,9 @@ class Cavity(Application):
         )
 
         fluid.lmda[:] = 1.0
-        fluid.DX[:] = 0.0
-        fluid.DY[:] = 0.0
-        fluid.DY[:] = 0.0
-        fluid.DRh[:] = 0.0
+
+        temp = self.Umax*self.h0/self.nu
+        print('Check Factor = ', temp)
 
         
         return [fluid, solid]
@@ -246,7 +249,7 @@ class Cavity(Application):
         '''
         kernel = WendlandQuintic(dim=2)
 
-        integrator = PECIntegrator(fluid = TransportVelocityStep_DPSPH())
+        integrator = PECIntegrator(fluid = DPSPHStep())
 
         solver = Solver(
             kernel=kernel, dim=2, integrator=integrator, dt=self.dt, tf=self.tf, 
@@ -285,38 +288,33 @@ class Cavity(Application):
         '''        
         equations = [
             Group(equations=[
-                GradientCorrectionPreStep(dest='fluid', sources=['fluid','solid'], dim=2),
-                GradientCorrection(dest='fluid', sources=['fluid','solid'], dim=2, tol=0.1),
+                GradientCorrectionPreStep(dest='fluid', sources=['fluid','solid'], dim=self.dim),
+                GradientCorrection(dest='fluid', sources=['fluid','solid'], dim=self.dim),
                 ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid', 'solid']),
-                #PST_PreStep_1(dest='fluid', sources=['fluid',], dim=2, boundedFlow=self.PST_boundedFlow),
-                #PST_PreStep_2(dest='fluid', sources=['fluid',], dim=2, H=self.h0, boundedFlow=self.PST_boundedFlow),
+                PST_PreStep_1(dest='fluid', sources=['fluid', 'solid'], dim=self.dim, boundedFlow=self.PST_boundedFlow),
+                PST_PreStep_2(dest='fluid', sources=['fluid','solid'], dim=self.dim, H=self.h0, boundedFlow=self.PST_boundedFlow),
             ], real=False),
 
             Group(equations=[
-                #PST(dest='fluid', sources=['fluid','solid'], dim=2, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.PST_Uc0, saveAllDRh=True, boundedFlow=self.PST_boundedFlow),
+                PST(dest='fluid', sources=['fluid','solid'], H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.c0, boundedFlow=self.PST_boundedFlow),
                 ContinuityEquation(dest='fluid', sources=['fluid', 'solid']),                 
-                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid', 'solid'], c0=self.c0, delta=0.1),
-                #SummationDensity(dest='fluid', sources=['fluid', 'solid'])
+                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid', 'solid'], c0=self.c0),
             ], real=False),
 
             Group(equations=[
-                #StateEquation(dest='fluid', sources=None, p0=self.p0, rho0=self.rho0),
                 IsothermalEOS(dest='fluid', sources=None, rho0=self.rho0, c0=self.c0, p0=0.0),
-                SetWallVelocity(dest='solid', sources=['fluid'])
+                SetWallVelocity(dest='solid', sources=['fluid']),
             ], real=False),
 
             Group(equations=[
-                SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0)
+                SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0,),
             ], real=False),
 
             Group(equations=[
-                MomentumEquationPressureGradient(dest='fluid', sources=['fluid','solid'], pb=self.p0),  
-                #MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
                 LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid',]),
-                #LaminarViscosity(dest='fluid', sources=['fluid'], nu=self.nu),
-                LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid',], dim=2, rho0=self.rho0, nu=self.nu), 
+                LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid',], dim=self.dim, rho0=self.rho0, nu=self.nu), 
                 SolidWallNoSlipBC(dest='fluid', sources=['solid'], nu=self.nu), 
-                #MomentumEquationArtificialStress(dest='fluid', sources=['fluid']),  
+                Spatial_Acceleration(dest='fluid', sources=['fluid']),  
             ], real=True), 
         ]       
         
