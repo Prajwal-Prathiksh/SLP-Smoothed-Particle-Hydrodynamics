@@ -1,0 +1,29 @@
+INFO|2020-10-14 21:15:33,026|pysph.solver.application|Started as:
+Cavity-PySPH.py --opencl
+INFO|2020-10-14 21:15:33,027|pysph.solver.application|Running on Hope with address 192.168.0.28
+INFO|2020-10-14 21:15:33,027|pysph.solver.application|Using OpenMP schedule dynamic,64
+INFO|2020-10-14 21:15:33,027|pysph.solver.application|Using OpenCL
+INFO|2020-10-14 21:15:38,615|pyopencl|build program: kernel 'fill' was part of a lengthy cache retrieval (0.69 s)
+INFO|2020-10-14 21:15:40,993|pyopencl|build program: kernel 'elwise_extract_particles_knl' was part of a lengthy source build resulting from a binary cache miss (1.95 s)
+INFO|2020-10-14 21:15:46,249|pysph.solver.application|Generating output in E:\IIT Bombay - Miscellaneous\Winter Project\SLP-Smoothed-Particle-Hydrodynamics\SLP\Cavity\Cavity-PySPH_output
+INFO|2020-10-14 21:16:28,201|pysph.solver.application|Started as:
+Cavity-PySPH.py --cuda
+INFO|2020-10-14 21:16:28,201|pysph.solver.application|Running on Hope with address 192.168.0.28
+INFO|2020-10-14 21:16:28,201|pysph.solver.application|Using OpenMP schedule dynamic,64
+INFO|2020-10-14 21:16:28,201|pysph.solver.application|Using CUDA
+INFO|2020-10-14 21:17:16,457|pysph.solver.application|Started as:
+Cavity-PySPH.py --opencl
+INFO|2020-10-14 21:17:16,457|pysph.solver.application|Running on Hope with address 192.168.0.28
+INFO|2020-10-14 21:17:16,457|pysph.solver.application|Using OpenMP schedule dynamic,64
+INFO|2020-10-14 21:17:16,457|pysph.solver.application|Using OpenCL
+INFO|2020-10-14 21:17:20,891|pyopencl|build program: kernel 'elwise_extract_particles_knl' was part of a lengthy source build resulting from a binary cache miss (2.74 s)
+INFO|2020-10-14 21:17:22,477|pysph.solver.application|Generating output in E:\IIT Bombay - Miscellaneous\Winter Project\SLP-Smoothed-Particle-Hydrodynamics\SLP\Cavity\Cavity-PySPH_output
+INFO|2020-10-14 21:18:16,731|pysph.solver.application|Started as:
+Cavity-PySPH.py --opencl
+INFO|2020-10-14 21:18:16,732|pysph.solver.application|Running on Hope with address 192.168.0.28
+INFO|2020-10-14 21:18:16,732|pysph.solver.application|Using OpenMP schedule dynamic,64
+INFO|2020-10-14 21:18:16,732|pysph.solver.application|Using OpenCL
+INFO|2020-10-14 21:18:18,253|pyopencl|build program: kernel 'elwise_extract_particles_knl' was part of a lengthy source build resulting from a binary cache miss (0.57 s)
+INFO|2020-10-14 21:18:19,013|pyopencl|build program: kernel 'elwise_fill_pids' was part of a lengthy cache retrieval (0.31 s)
+INFO|2020-10-14 21:18:19,459|pyopencl|build program: kernel 'elwise_map_cid_to_idx' was part of a lengthy cache retrieval (0.37 s)
+INFO|2020-10-14 21:18:19,468|pysph.solver.application|Generating output in E:\IIT Bombay - Miscellaneous\Winter Project\SLP-Smoothed-Particle-Hydrodynamics\SLP\Cavity\Cavity-PySPH_output
