@@ -53,3 +53,25 @@ def get_particle_array_dpsph(constants=None, **props):
     ])
 
     return pa
+
+def get_particle_array_RK4(constants=None, **props):
+
+    rk4_props = [
+        'rho',
+        'ax', 'ay', 'au', 'av', 'arho',
+        'x0', 'y0', 'u0', 'v0', 'rho0',
+        'xstar', 'ystar', 'ustar', 'vstar', 'rhostar',
+        'vmag', 'vmag2',
+    ]
+
+    pa = get_particle_array(
+        constants=constants, additional_props=rk4_props, **props
+    )
+
+    # default property arrays to save out.
+    pa.set_output_arrays([
+        'x', 'y','z', 'u', 'v', 'w', 'rho', 'vmag', 'vmag2', 
+        'pid', 'gid', 'tag', 
+    ])
+
+    return pa
