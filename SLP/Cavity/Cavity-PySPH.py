@@ -43,7 +43,7 @@ sys.path.insert(1, 'E:\IIT Bombay - Miscellaneous\Winter Project\SLP-Smoothed-Pa
 
 # SPH Equation Imports
 from SLP.dpsph.equations import (
-    PST_PreStep_1, PST_PreStep_2, PST, AverageSpacing
+    PST_PreStep_1, PST_PreStep_2, PST, EvaluateNumberDensity, SetPressureSolid
 )
 from SLP.dpsph.integrator import DPSPHStep, RK4Integrator, RK4Step
 
@@ -81,8 +81,6 @@ c0 = 10 * Umax
 rho0 = 1.0
 p0 = c0 * c0 * rho0
 
-# Numerical setup
-hdx = 1.33
 
 ################################################################################
 # Tayloy Green Vortex - Application
@@ -107,11 +105,21 @@ class Cavity(Application):
             "--ntf", action="store", type=int, dest="ntf", default=-1,
             help="Number of timesteps"
         )
+        group.add_argument(
+            "--my_cfl", action="store", type=float, dest="cfl", default=1.0,
+            help="CFL number"
+        )
+        group.add_argument(
+            "--my_hdx", action="store", type=float, dest="hdx", default=1.5,
+            help="hdx value"
+        )
 
     def consume_user_options(self):
         '''
         Initialize simulation paramters
         '''
+        self.hdx = self.options.hdx
+        hdx = self.hdx
         self.dim = 2
         self.nx = self.options.nx
         if self.options.n_avg is not None:
@@ -123,8 +131,7 @@ class Cavity(Application):
         self.nu = Umax * L / self.re
         self.Umax = Umax
 
-        #dt_cfl = 0.25 * h0 / (c0 + Umax)
-        dt_cfl = 1.5 * h0 / (c0 + Umax)
+        dt_cfl = self.options.cfl * h0 / (c0 + Umax)
         dt_viscous = 0.125 * h0**2 / self.nu
         dt_force = 1.0
         self.dt = min(dt_cfl, dt_viscous, dt_force)
@@ -136,13 +143,14 @@ class Cavity(Application):
         self.p0 = p0
         self.c0 = c0
 
-        self.PSR_Rh = 0.1 #0.05  
+        self.PSR_Rh = 0.075 #0.05
         self.PST_R_coeff = 0.2
         self.PST_n_exp = 4.0
-        self.PST_Uc0 = 10.0 +5.0
+        self.PST_Uc0 = self.c0
         self.PST_boundedFlow = True
         
     def create_particles(self):
+        hdx = self.hdx
         dx = self.dx
         ghost_extent = 5 * dx
         # create all the particles
@@ -211,7 +219,8 @@ class Cavity(Application):
             solid.add_property(i)
 
         add_props = [
-            'rho0', 'x0', 'y0', 'z0', 'lmda', 'DX', 'DY', 'DZ', 'DRh', 'vmag'
+            'rho0', 'x0', 'y0', 'z0', 'lmda', 'DX', 'DY', 'DZ', 'DRh', 'vmag',
+            'wij2',
             ]
         rk4_props = [
             'rho',
@@ -295,40 +304,9 @@ class Cavity(Application):
             ], real=True)
         ]   
         '''        
-        equations = [
-            Group(equations=[
-                GradientCorrectionPreStep(dest='fluid', sources=['fluid','solid'], dim=self.dim),
-                GradientCorrection(dest='fluid', sources=['fluid','solid'], dim=self.dim),
-                ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid', 'solid']),
-                PST_PreStep_1(dest='fluid', sources=['fluid', 'solid'], dim=self.dim, boundedFlow=self.PST_boundedFlow),
-                PST_PreStep_2(dest='fluid', sources=['fluid','solid'], dim=self.dim, H=self.h0, boundedFlow=self.PST_boundedFlow),
-            ], real=False),
-
-            Group(equations=[
-                PST(dest='fluid', sources=['fluid','solid'], H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.c0, boundedFlow=self.PST_boundedFlow, Rh=self.PSR_Rh),
-                ContinuityEquation(dest='fluid', sources=['fluid', 'solid']),                 
-                ContinuityEquationDeltaSPH(dest='fluid', sources=['fluid', 'solid'], c0=self.c0),
-            ], real=False),
-
-            Group(equations=[
-                IsothermalEOS(dest='fluid', sources=None, rho0=self.rho0, c0=self.c0, p0=0.0),
-                SetWallVelocity(dest='solid', sources=['fluid']),
-            ], real=False),
-
-            Group(equations=[
-                SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0,),
-            ], real=False),
-
-            Group(equations=[
-                LaminarViscosityDeltaSPHPreStep(dest='fluid', sources=['fluid',]),
-                LaminarViscosityDeltaSPH(dest='fluid', sources=['fluid',], dim=self.dim, rho0=self.rho0, nu=self.nu), 
-                SolidWallNoSlipBC(dest='fluid', sources=['solid'], nu=self.nu), 
-                Spatial_Acceleration(dest='fluid', sources=['fluid']),  
-            ], real=True), 
-        ]       
-
         eq1 = [
             Group(equations=[
+                EvaluateNumberDensity(dest='solid', sources=['solid', 'fluid']),
                 GradientCorrectionPreStep(dest='fluid', sources=['fluid','solid'], dim=self.dim),
                 GradientCorrection(dest='fluid', sources=['fluid','solid'], dim=self.dim),
                 ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid', 'solid']),
@@ -341,11 +319,12 @@ class Cavity(Application):
 
             Group(equations=[
                 IsothermalEOS(dest='fluid', sources=None, rho0=self.rho0, c0=self.c0, p0=0.0),
-                SetWallVelocity(dest='solid', sources=['fluid']),
             ], real=False),
 
             Group(equations=[
-                SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0,),
+                SetWallVelocity(dest='solid', sources=['fluid']),
+                #SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0,),
+                SetPressureSolid(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0,),
             ], real=False),
 
             Group(equations=[

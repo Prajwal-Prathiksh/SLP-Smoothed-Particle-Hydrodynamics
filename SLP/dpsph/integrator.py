@@ -289,7 +289,7 @@ class RK4Step(IntegratorStep):
         d_x0, d_y0, d_u0, d_v0, d_rho0,
         d_ax, d_ay, d_au, d_av, d_arho,
         d_xstar, d_ystar, d_ustar, d_vstar, d_rhostar,
-        d_DX, d_DY, d_vmag2, d_vmag, dt,
+        d_vmag2, d_vmag, dt,
     ):
         dtby6 = dt/6.0
         #Store computed `k_4` properties

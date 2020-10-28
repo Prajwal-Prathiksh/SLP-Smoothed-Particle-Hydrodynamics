@@ -5,7 +5,7 @@ sys.path.insert(1, '/home/prajwal/Desktop/Winter_Project/SLP-Smoothed-Particle-H
 sys.path.insert(1, 'E:\IIT Bombay - Miscellaneous\Winter Project\SLP-Smoothed-Particle-Hydrodynamics')
 
 # PyPSH Equations Import
-from pysph.sph.equation import Equation, Group
+from pysph.sph.equation import Equation, Group, MultiStageEquations
 from pysph.base.kernels import WendlandQuintic
 
 # PySPH solver imports
@@ -76,7 +76,7 @@ class Test_Integrator(Application):
         Initialize simulation paramters
         '''
         self.R = self.options.R
-        self.tf = np.pi*6.0
+        self.tf = 0.1 * 50
         self.dt = self.tf/self.options.N
         self.pfreq = 1
         self.INT = self.options.INT
@@ -117,7 +117,7 @@ class Test_Integrator(Application):
             ], real=True),
         ]
 
-        return equations
+        return  MultiStageEquations([equations,])
 
     ###### Post processing
     def post_process(self, info_fname):
@@ -129,7 +129,7 @@ class Test_Integrator(Application):
         from pysph.solver.utils import iter_output
 
         files = self.output_files
-        t, xa, ya = [], [], []
+        t, xa, ya, r_err = [], [], [], []
         for sd, array in iter_output(files, 'fluid'):
             _t = sd['t']
             t.append(_t)
@@ -138,16 +138,26 @@ class Test_Integrator(Application):
             xa.append(x[0])
             ya.append(y[0])
 
+            err = np.abs(np.sqrt(x[0]*x[0] + y[0]*y[0]) - self.R)
+            r_err.append(err)
+
         t = np.array(t)
         xa = np.array(xa)
         ya = np.array(ya)
+        r_err = np.array(r_err)
 
         fname = os.path.join(self.output_dir, 'results.npz')
-        np.savez(fname, t=t, x=xa, y=ya)
+        np.savez(fname, t=t, x=xa, y=ya, r_err=r_err)
 
         import matplotlib
         
         matplotlib.use('Agg')
+
+        if self.INT == "eul":
+            tle = "Euler Integrator"  
+        else:
+            tle = "RK-4 Integrator"
+
 
         from matplotlib import pyplot as plt
         plt.clf()
@@ -157,7 +167,17 @@ class Test_Integrator(Application):
         plt.plot(t, self.R*np.sin(t), label='exact y')
         plt.xlabel('t')
         plt.legend()
-        fig = os.path.join(self.output_dir, "position.png")
+        plt.title(tle)
+        fig = os.path.join(self.output_dir, "error_position.png")
+        plt.savefig(fig, dpi=300)
+
+        plt.clf()
+        plt.plot(t, np.sqrt(xa*xa + ya*ya), label='radius')
+        plt.plot(t, self.R*np.ones_like(t), label='exact radius')
+        plt.xlabel('t')
+        plt.legend()
+        plt.title(tle)
+        fig = os.path.join(self.output_dir, "error_radius.png")
         plt.savefig(fig, dpi=300)
 
 ################################################################################

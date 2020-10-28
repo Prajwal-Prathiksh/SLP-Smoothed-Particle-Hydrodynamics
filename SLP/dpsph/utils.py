@@ -61,7 +61,7 @@ def get_particle_array_RK4(constants=None, **props):
         'ax', 'ay', 'au', 'av', 'arho',
         'x0', 'y0', 'u0', 'v0', 'rho0',
         'xstar', 'ystar', 'ustar', 'vstar', 'rhostar',
-        'vmag', 'vmag2',
+        'vmag', 'vmag2', 'DX', 'DY', 'DRh',
     ]
 
     pa = get_particle_array(

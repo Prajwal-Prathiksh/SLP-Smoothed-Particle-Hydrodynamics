@@ -380,136 +380,57 @@ class PST(Equation):
                 d_DZ[d_idx] = d_DZ[d_idx] * self.Rh / rh
                 d_DRh[d_idx] = self.Rh
 
-'''
-    def loop_all(
-        self, d_idx, d_x, d_y, d_z, d_rho, d_DX, d_DY, d_DZ, d_DRh, d_lmda, 
-        d_gradlmda, s_x, s_y, s_z, s_rho, s_m, SPH_KERNEL, NBRS, N_NBRS,
-    ):
-        n, i, j, k = declare('int', 4)
-        n = self.dim
-        s_idx = declare('long')
-        xij = declare('matrix(3)')
-        dwij = declare('matrix(3)')
-        ni = declare('matrix(3)')
-        deltaR = declare('matrix(3)')
-        res = declare('matrix(3)')
-        gradlmda_i = declare('matrix(3)')
-        M = declare('matrix(3,3)')
+class EvaluateNumberDensity(Equation):
+    def initialize(self, d_idx, d_wij, d_wij2):
+        d_wij[d_idx] = 0.0
+        d_wij2[d_idx] = 0.0
 
-        for j in range(3):
-            deltaR[j] = 0.0
-            gradlmda_i[j] = d_gradlmda[d_idx*3 + j]
+    def loop(self, d_idx, d_wij, d_wij2, XIJ, HIJ, RIJ, SPH_KERNEL):
+        wij = SPH_KERNEL.kernel(XIJ, RIJ, HIJ)
+        wij2 = SPH_KERNEL.kernel(XIJ, RIJ, 0.5*HIJ)
+        d_wij[d_idx] += wij
+        d_wij2[d_idx] += wij2
 
-        rhoi = d_rho[d_idx]
-        lmdai = d_lmda[d_idx]
+class SetPressureSolid(Equation):
+    def __init__(self, dest, sources, rho0, p0, b=1.0, gx=0.0, gy=0.0, gz=0.0,
+                 hg_correction=True):
+        
+        self.rho0 = rho0
+        self.gx = gx
+        self.gy = gy
+        self.gz = gz
+        self.p0 = p0
+        self.b = b
+        #self.hg_correction = hg_correction
+        super(SetPressureSolid, self).__init__(dest, sources)
 
-        if self.boundedFlow == True or lmdai > 0.4:
-            ##################
-            # Case - 2 & 3
-            ##################
+    def initialize(self, d_idx, d_p):
+        d_p[d_idx] = 0.0
 
-            # Calculate W(\delta s) value            
-            w_delta_s = SPH_KERNEL.kernel(xij, self.dx, self.H) 
+    def loop(self, d_idx, s_idx, d_p, s_p, s_rho,
+             d_au, d_av, d_aw, XIJ, RIJ, HIJ, d_wij2, SPH_KERNEL):
 
-            for i in range(N_NBRS):
-                s_idx = NBRS[i]
+        # numerator of Eq. (27) ax, ay and az are the prescribed wall
+        # accelerations which must be defined for the wall boundary
+        # particle
+        wij = SPH_KERNEL.kernel(XIJ, RIJ, HIJ)
+        wij2 = SPH_KERNEL.kernel(XIJ, RIJ, 0.5*HIJ)
 
-                rhoj = s_rho[s_idx]
-                mj = s_m[s_idx]
+        gdotxij = (self.gx - d_au[d_idx])*XIJ[0] + \
+            (self.gy - d_av[d_idx])*XIJ[1] + \
+            (self.gz - d_aw[d_idx])*XIJ[2]
 
-                xij[0] = d_x[d_idx] - s_x[s_idx]
-                xij[1] = d_y[d_idx] - s_y[s_idx]
-                xij[2] = d_z[d_idx] - s_z[s_idx]
-                rij = sqrt(xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2])
-
-                # Calculate Kernel values
-                wij = SPH_KERNEL.kernel(xij, rij, self.H)
-                SPH_KERNEL.gradient(xij, rij, self.H, dwij)
-
-                ################################################################
-                # Calculate \delta r_i
-                ################################################################
-
-                # Calcuate fij
-                fij = self.R_coeff * pow((wij/(self.eps+w_delta_s)), self.n_exp)
-                #fij = 0.0
-
-                # Calcuate multiplicative factor
-                fac = (1.0 + fij)*(mj/(rhoi+rhoj+self.eps))
-
-                # Sum \delta r_i
-                for j in range(n):
-                    deltaR[j] += self.CONST*self.Uc0*fac*dwij[j]
-
-            if self.boundedFlow == True or lmdai > 0.75:
-                ##################
-                # Case - 3
-                ##################
-                rh = sqrt(deltaR[0]*deltaR[0] + deltaR[1]*deltaR[1] + deltaR[2]*deltaR[2])/self.H
-
-                if rh > self.Rh:
-                    # Check Rh condition
-                    d_DX[d_idx] += deltaR[0] * self.Rh / rh
-                    d_DY[d_idx] += deltaR[1] * self.Rh / rh
-                    d_DZ[d_idx] += deltaR[2] * self.Rh / rh
-                    print(rh)
-                    if self.saveAllDRh == True:    
-                        d_DRh[d_idx] += rh
-                else:
-                    d_DX[d_idx] += deltaR[0]
-                    d_DY[d_idx] += deltaR[1]
-                    d_DZ[d_idx] += deltaR[2]
-                    d_DRh[d_idx] += rh
-                    print(rh)
-
-            
-            elif self.boundedFlow == False and lmdai <= 0.75:
-                ##################
-                # Case - 2
-                ##################
-
-                ni_norm = sqrt(gradlmda_i[0]*gradlmda_i[0] + gradlmda_i[1]*gradlmda_i[1] + gradlmda_i[2]*gradlmda_i[2])
-
-                for j in range(n):
-                    ni[j] = gradlmda_i[j] / (ni_norm + self.eps)
-                    res[j] = 0.0
-
-                for j in range(n):
-                    for k in range(n):
-                        M[j][k] = - ni[j]*ni[k]
-                        if j == k:
-                            M[j][k] += 1.0
-
-
-                for j in range(n):
-                    for k in range(n):
-                        res[j] += M[j][k] * deltaR[k]
-
-                for j in range(n):
-                    deltaR[j] = res[j]
-
-                rh = sqrt(deltaR[0]*deltaR[0] + deltaR[1]*deltaR[1] + deltaR[2]*deltaR[2])/self.H
-
-                if rh > self.Rh:
-                    # Check Rh condition
-                    d_DX[d_idx] += 0.0
-                    d_DY[d_idx] += 0.0
-                    d_DZ[d_idx] += 0.0
-                    if self.saveAllDRh == True:    
-                        d_DRh[d_idx] += rh
-                else:
-                    d_DX[d_idx] += deltaR[0]
-                    d_DY[d_idx] += deltaR[1]
-                    d_DZ[d_idx] += deltaR[2]
-                    d_DRh[d_idx] += rh
-
+        if d_wij2[d_idx] > 1e-14:
+            d_p[d_idx] += s_p[s_idx]*wij2 + s_rho[s_idx]*gdotxij*wij2
         else:
-            ##################
-            # Case - 1
-            ##################
+            d_p[d_idx] += s_p[s_idx]*wij + s_rho[s_idx]*gdotxij*wij
 
-            d_DX[d_idx] = 0.0
-            d_DY[d_idx] = 0.0
-            d_DZ[d_idx] = 0.0
-            d_DRh[d_idx] = 0.0
-'''
+    def post_loop(self, d_idx, d_wij, d_wij2, d_p, d_rho):
+        # extrapolated pressure at the ghost particle
+        if d_wij2[d_idx] > 1e-14:
+            d_p[d_idx] /= d_wij2[d_idx]
+        elif d_wij[d_idx] > 1e-14:
+            d_p[d_idx] /= d_wij[d_idx]
+
+        # update the density from the pressure Eq. (28)
+        d_rho[d_idx] = self.rho0 * (d_p[d_idx]/self.p0 + self.b)
