@@ -381,19 +381,23 @@ class PST(Equation):
                 d_DRh[d_idx] = self.Rh
 
 class EvaluateNumberDensity(Equation):
+    def __init__(self, dest, sources, hij_fac=0.5):
+        self.hij_fac = hij_fac
+        super(EvaluateNumberDensity, self).__init__(dest, sources)
+
     def initialize(self, d_idx, d_wij, d_wij2):
         d_wij[d_idx] = 0.0
         d_wij2[d_idx] = 0.0
 
     def loop(self, d_idx, d_wij, d_wij2, XIJ, HIJ, RIJ, SPH_KERNEL):
         wij = SPH_KERNEL.kernel(XIJ, RIJ, HIJ)
-        wij2 = SPH_KERNEL.kernel(XIJ, RIJ, 0.5*HIJ)
+        wij2 = SPH_KERNEL.kernel(XIJ, RIJ, self.hij_fac*HIJ)
         d_wij[d_idx] += wij
         d_wij2[d_idx] += wij2
 
 class SetPressureSolid(Equation):
     def __init__(self, dest, sources, rho0, p0, b=1.0, gx=0.0, gy=0.0, gz=0.0,
-                 hg_correction=True):
+                 hg_correction=True, hij_fac=0.5):
         
         self.rho0 = rho0
         self.gx = gx
@@ -401,6 +405,7 @@ class SetPressureSolid(Equation):
         self.gz = gz
         self.p0 = p0
         self.b = b
+        self.hij_fac = hij_fac
         #self.hg_correction = hg_correction
         super(SetPressureSolid, self).__init__(dest, sources)
 
@@ -414,7 +419,7 @@ class SetPressureSolid(Equation):
         # accelerations which must be defined for the wall boundary
         # particle
         wij = SPH_KERNEL.kernel(XIJ, RIJ, HIJ)
-        wij2 = SPH_KERNEL.kernel(XIJ, RIJ, 0.5*HIJ)
+        wij2 = SPH_KERNEL.kernel(XIJ, RIJ, self.hij_fac*HIJ)
 
         gdotxij = (self.gx - d_au[d_idx])*XIJ[0] + \
             (self.gy - d_av[d_idx])*XIJ[1] + \

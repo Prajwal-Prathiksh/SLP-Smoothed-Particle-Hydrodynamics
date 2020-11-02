@@ -110,8 +110,16 @@ class Cavity(Application):
             help="CFL number"
         )
         group.add_argument(
-            "--my_hdx", action="store", type=float, dest="hdx", default=1.5,
+            "--my_hdx", action="store", type=float, dest="hdx", default=1.33,
             help="hdx value"
+        )
+        group.add_argument(
+            "--RH", action="store", type=float, dest="pst_rh", default=0.75,
+            help="PST's Rh value"
+        )
+        group.add_argument(
+            "--hij_fac", action="store", type=float, dest="hij_fac", default=0.5,
+            help="HIJ factor value"
         )
 
     def consume_user_options(self):
@@ -143,11 +151,13 @@ class Cavity(Application):
         self.p0 = p0
         self.c0 = c0
 
-        self.PSR_Rh = 0.075 #0.05
+        self.PSR_Rh = self.options.pst_rh
         self.PST_R_coeff = 0.2
         self.PST_n_exp = 4.0
         self.PST_Uc0 = self.c0
         self.PST_boundedFlow = True
+
+        self.hij_fac = self.options.hij_fac
         
     def create_particles(self):
         hdx = self.hdx
@@ -282,31 +292,31 @@ class Cavity(Application):
         '''
 
         '''
-        equations = [
-            Group(equations=[
-                SummationDensity(dest='fluid', sources=['fluid', 'solid'])
-            ], real=False),
+            equations = [
+                Group(equations=[
+                    SummationDensity(dest='fluid', sources=['fluid', 'solid'])
+                ], real=False),
 
-            Group(equations=[
-                StateEquation(dest='fluid', sources=None, p0=self.p0, rho0=self.rho0), 
-                SetWallVelocity(dest='solid', sources=['fluid'])
-            ], real=False),
+                Group(equations=[
+                    StateEquation(dest='fluid', sources=None, p0=self.p0, rho0=self.rho0), 
+                    SetWallVelocity(dest='solid', sources=['fluid'])
+                ], real=False),
 
-            Group(equations=[
-                SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0)
-            ], real=False),
+                Group(equations=[
+                    SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0)
+                ], real=False),
 
-            Group(equations=[
-                MomentumEquationPressureGradient(dest='fluid', sources=['fluid','solid'], pb=self.p0), 
-                MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu), 
-                SolidWallNoSlipBC(dest='fluid', sources=['solid'], nu=self.nu), 
-                MomentumEquationArtificialStress(dest='fluid', sources=['fluid'])
-            ], real=True)
-        ]   
+                Group(equations=[
+                    MomentumEquationPressureGradient(dest='fluid', sources=['fluid','solid'], pb=self.p0), 
+                    MomentumEquationViscosity(dest='fluid', sources=['fluid'], nu=self.nu), 
+                    SolidWallNoSlipBC(dest='fluid', sources=['solid'], nu=self.nu), 
+                    MomentumEquationArtificialStress(dest='fluid', sources=['fluid'])
+                ], real=True)
+            ]   
         '''        
         eq1 = [
             Group(equations=[
-                EvaluateNumberDensity(dest='solid', sources=['solid', 'fluid']),
+                EvaluateNumberDensity(dest='solid', sources=['fluid'], hij_fac=self.hij_fac),
                 GradientCorrectionPreStep(dest='fluid', sources=['fluid','solid'], dim=self.dim),
                 GradientCorrection(dest='fluid', sources=['fluid','solid'], dim=self.dim),
                 ContinuityEquationDeltaSPHPreStep(dest='fluid', sources=['fluid', 'solid']),
@@ -324,7 +334,7 @@ class Cavity(Application):
             Group(equations=[
                 SetWallVelocity(dest='solid', sources=['fluid']),
                 #SolidWallPressureBC(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0,),
-                SetPressureSolid(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0,),
+                SetPressureSolid(dest='solid', sources=['fluid'], rho0=self.rho0, p0=self.p0, hij_fac=self.hij_fac),
             ], real=False),
 
             Group(equations=[
