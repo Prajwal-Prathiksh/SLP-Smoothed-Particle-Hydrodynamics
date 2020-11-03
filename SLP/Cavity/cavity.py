@@ -66,14 +66,14 @@ class LidDrivenCavity(Application):
     def configure_scheme(self):
         h0 = self.hdx * self.dx        
         if self.options.scheme == 'dpsph':
-            self.scheme.configure(hdx=self.hdx, dx=self.dx, dt=self.dt, nu=self.nu)
+            self.scheme.configure(hdx=self.hdx, dx=self.dx, h0=self.h0, dt=self.dt, nu=self.nu)
 
         self.scheme.configure_solver(tf=self.tf, dt=self.dt, pfreq=1)
 
     def create_scheme(self):
         dpsph = DeltaPlusScheme(
             fluids=['fluid'], solids=['solid'], dim=2, rho0=rho0, c0=c0, 
-            nu=0.0, p0=p0, hdx=0.0, dx=0.0, dt=0.0,
+            nu=0.0, p0=p0, hdx=0.0, dx=0.0, h0=0.0, dt=0.0,
         )
         s = SchemeChooser(default='dpsph', dpsph=dpsph)
         return s

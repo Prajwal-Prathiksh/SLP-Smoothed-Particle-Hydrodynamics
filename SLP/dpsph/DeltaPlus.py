@@ -703,7 +703,7 @@ from pysph.sph.scheme import Scheme
 ### `\delta^+` SPH Scheme
 class DeltaPlusScheme(Scheme):
     def __init__(
-        self, fluids, solids, dim, rho0, c0, nu, p0, hdx, dx, dt, gx=0.0, gy=0.0, 
+        self, fluids, solids, dim, rho0, c0, nu, p0, hdx, dx, h0, dt, gx=0.0, gy=0.0, 
         gz=0.0, PST_boundedFlow=True, max_Dmag=0.05,
     ):
         self.fluids = fluids
@@ -717,7 +717,7 @@ class DeltaPlusScheme(Scheme):
         self.hdx = hdx
         self.dx = dx
         self.dt=dt
-        self.h0 = hdx * dx
+        self.h0 = h0
         self.gx = gx
         self.gy = gy
         self.gz = gz
@@ -764,20 +764,18 @@ class DeltaPlusScheme(Scheme):
         all = self.fluids + self.solids
         
         stage0 = []
-        if self.solids:
-            eq0 = []
-            for solid in self.solids:
-                eq0.append(EvaluateNumberDensity(dest=solid, sources=self.fluids))
-            stage0.append(Group(equations=eq0, real=False))
-
         eq1 = []
+        if self.solids:
+            for solid in self.solids:
+                eq1.append(EvaluateNumberDensity(dest=solid, sources=self.fluids))
+
         for fluid in self.fluids:
             eq1.append(GradientCorrectionPreStep(dest=fluid, sources=all, dim=self.dim))
             eq1.append(GradientCorrection(dest=fluid, sources=all, dim=self.dim))
             eq1.append(ContinuityEquationDeltaSPHPreStep(dest=fluid, sources=all))
         stage0.append(Group(equations=eq1, real=False))
 
-        eq2 = []
+        eq2 = []    
         for fluid in self.fluids:
             eq2.append(ContinuityEquation(dest=fluid, sources=all))
             eq2.append(ContinuityEquationDeltaSPH(dest=fluid, sources=all, c0=self.c0))
@@ -816,7 +814,7 @@ class DeltaPlusScheme(Scheme):
         eq7 = []
         for fluid in self.fluids:
             eq7.append(PST(dest=fluid, sources=all, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.c0, boundedFlow=self.PST_boundedFlow, max_Dmag=self.max_Dmag))
-        #stage1.append(Group(equations=eq7, real=False))
+        stage1.append(Group(equations=eq7, real=False))
 
         return MultiStageEquations([stage0,stage1])
 
