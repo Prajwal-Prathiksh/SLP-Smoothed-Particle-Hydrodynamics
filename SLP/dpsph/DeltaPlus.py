@@ -752,7 +752,8 @@ class DeltaPlusScheme(Scheme):
         kernel = WendlandQuintic(dim=self.dim)
         integrator = RK4Integrator(fluid=RK4Step())  
         
-        
+        from pysph.sph.integrator import EulerIntegrator
+        from pysph.sph.integrator_step import EulerStep
         integrator = EulerIntegrator(fluid=EulerStep())      
 
         self.solver = Solver(
