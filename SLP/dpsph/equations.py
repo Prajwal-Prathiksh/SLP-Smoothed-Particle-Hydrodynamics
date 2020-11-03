@@ -289,7 +289,7 @@ class PST(Equation):
     """
     def __init__(
         self, dest, sources, H, dt, dx, Uc0, boundedFlow, R_coeff=0.2, n_exp=4.0,
-        Rh=0.05,
+        max_Dmag=0.05,
     ):
         r'''
             Parameters:
@@ -326,18 +326,18 @@ class PST(Equation):
         self.H = H
         self.dx = dx
         self.Uc0 = Uc0
-        self.Rh = Rh
+        self.max_Dmag = max_Dmag
         self.boundedFlow = boundedFlow
         self.eps = H**2 * 0.01
         self.CONST = -0.5*dt*H 
 
         super(PST, self).__init__(dest, sources)
 
-    def initialize(self, d_idx, d_DX, d_DY, d_DZ, d_DRh):
+    def initialize(self, d_idx, d_DX, d_DY, d_DZ, d_Dmag):
         d_DX[d_idx] = 0.0
         d_DY[d_idx] = 0.0
         d_DZ[d_idx] = 0.0
-        d_DRh[d_idx] = 0.0
+        d_Dmag[d_idx] = 0.0
 
     def loop(
         self, d_idx, d_rho, d_DX, d_DY, d_DZ, s_idx, s_rho, s_m, XIJ, DWIJ, WIJ,
@@ -365,20 +365,20 @@ class PST(Equation):
         d_DY[d_idx] += self.CONST * self.Uc0 * fac * DWIJ[1]
         d_DZ[d_idx] += self.CONST * self.Uc0 * fac * DWIJ[2] 
 
-    def post_loop(self, d_idx, d_lmda, d_DX, d_DY, d_DZ, d_DRh):
+    def post_loop(self, d_idx, d_lmda, d_DX, d_DY, d_DZ, d_Dmag):
 
         lmdai = d_lmda[d_idx]
         if self.boundedFlow == True or lmdai > 0.75:
 
-            rh = sqrt(d_DX[d_idx]*d_DX[d_idx] + d_DY[d_idx]*d_DY[d_idx] + d_DZ[d_idx]*d_DZ[d_idx]) / self.H
-            d_DRh[d_idx] = rh
+            mag = sqrt(d_DX[d_idx]*d_DX[d_idx] + d_DY[d_idx]*d_DY[d_idx] + d_DZ[d_idx]*d_DZ[d_idx]) / self.dx
+            d_Dmag[d_idx] = mag
 
-            if rh > self.Rh:
-                # Check Rh condition and correct the values
-                d_DX[d_idx] = d_DX[d_idx] * self.Rh / rh
-                d_DY[d_idx] = d_DY[d_idx] * self.Rh / rh
-                d_DZ[d_idx] = d_DZ[d_idx] * self.Rh / rh
-                d_DRh[d_idx] = self.Rh
+            if mag > self.max_Dmag:
+                # Check norm condition and correct the values
+                d_DX[d_idx] = d_DX[d_idx] * self.max_Dmag / mag
+                d_DY[d_idx] = d_DY[d_idx] * self.max_Dmag / mag
+                d_DZ[d_idx] = d_DZ[d_idx] * self.max_Dmag / mag
+                d_Dmag[d_idx] = self.max_Dmag
 
 class EvaluateNumberDensity(Equation):
     def __init__(self, dest, sources, hij_fac=0.5):

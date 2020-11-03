@@ -4,14 +4,15 @@
 from pysph.base.utils import get_particle_array
 
 ### `\delta^+` Particle Array
-def get_particle_array_DeltaPlus(constants=None, **props):
-    """Return a particle array for the :math:`\delta^+` - SPH Scheme.
+def get_particle_array_DeltaPlus_fluid(constants=None, **props):
+    """Returns a fluid particle array for the :math:`\delta^+` - SPH Scheme.
 
-        This sets the defualt properties to be::
+        This sets the default properties to be::
 
-            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'm', 'h', 'L00', 'L01', 
-            'L10', 'L11', 'lmda', 'delta_p', 'grad_rho1', 'grad_rho2', 
-            'DX', 'DY', 'DRh', 'arho', 'au', 'av', 'aw', 'gid', 'pid', 'tag']
+            ['x', 'y', 'z', 'u', 'v', 'w', 'm', 'h', 'rho', 'p', 'au', 'av', 
+            'aw', 'gid', 'pid', 'tag', 'ax', 'ay', 'az', 'arho', 'x0', 'y0', 
+            'u0', 'v0', 'rho0', 'xstar', 'ystar', 'ustar', 'vstar', 'rhostar',
+            'vmag','vmag2', 'V', 'lmda', 'DX', 'DY', 'DZ', 'Dmag',]
 
         Parameters:
         -----------
@@ -29,11 +30,11 @@ def get_particle_array_DeltaPlus(constants=None, **props):
     """
     # Properties required for :math:`\delta^+` - SPH Scheme
     deltaPlus_props = [
-        'rho',
-        'ax', 'ay', 'az', 'au', 'av', 'aw', 'arho',
-        'x0', 'y0', 'z0', 'u0', 'v0', 'w0', 'rho0',
-        'xstar', 'ystar', 'zstar', 'ustar', 'vstar', 'wstar', 'rhostar',
-        'vmag', 'vmag2', 'DX', 'DY', 'DZ', 'Dmag', 'lmda', 'V'
+            'ax', 'ay', 'az', 'arho',
+            'x0', 'y0', 'u0', 'v0', 'rho0',
+            'xstar', 'ystar', 'ustar', 'vstar', 'rhostar',
+            'vmag','vmag2', 'V',
+            'lmda', 'DX', 'DY', 'DZ', 'Dmag',
     ]
 
     pa = get_particle_array(
@@ -47,22 +48,20 @@ def get_particle_array_DeltaPlus(constants=None, **props):
 
     # default property arrays to save out
     pa.set_output_arrays([
-        'x', 'y', 'z', 'u', 'v', 'w', 'rho', 
-        'p', 'h', 'm', 
-        'vmag', 'vmag2', 'DX', 'DY', 'DZ', 'Dmag', 'lmda',
-        'pid', 'gid', 'tag', 
+        'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 
+        'vmag', 'vmag2', 'lmda', 'DX', 'DY', 'DZ', 'Dmag',
+        'pid', 'gid', 'tag',
     ])
-
     return pa
 
 def get_particle_array_DeltaPlus_solid(constants=None, **props):
-    """Return a particle array for the :math:`\delta^+` - SPH Scheme.
+    """Returns a solid particle array for the :math:`\delta^+` - SPH Scheme.
 
-        This sets the defualt properties to be::
+        This sets the default properties to be::
 
-            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'm', 'h', 'L00', 'L01', 
-            'L10', 'L11', 'lmda', 'delta_p', 'grad_rho1', 'grad_rho2', 
-            'DX', 'DY', 'DRh', 'arho', 'au', 'av', 'aw', 'gid', 'pid', 'tag']
+            ['x', 'y', 'z', 'u', 'v', 'w', 'm', 'h', 'rho', 'p', 'au', 'av', 
+            'aw', 'gid', 'pid', 'tag', 'lmda', 'V', 'wij', 'wij2', 'ug', 'vf', 
+            'wg', 'uf', 'vg', 'wf', ]
 
         Parameters:
         -----------
@@ -80,13 +79,8 @@ def get_particle_array_DeltaPlus_solid(constants=None, **props):
     """
     # Properties required for :math:`\delta^+` - SPH Scheme
     deltaPlus_props = [
-        'rho',
-        'ax', 'ay', 'az', 'au', 'av', 'aw', 'arho',
-        'x0', 'y0', 'z0', 'u0', 'v0', 'w0', 'rho0',
-        'xstar', 'ystar', 'zstar', 'ustar', 'vstar', 'wstar', 'rhostar',
-        'vmag', 'vmag2', 'DX', 'DY', 'DZ', 'Dmag', 'lmda', 'V',
-        'wij', 'wij2',
-        'ug', 'wf', 'wg', 'vf', 'vg', 'uf',
+        'lmda', 'V', 'wij', 'wij2',
+        'ug', 'vf', 'wg', 'uf', 'vg', 'wf', 
     ]
 
     pa = get_particle_array(
@@ -94,16 +88,15 @@ def get_particle_array_DeltaPlus_solid(constants=None, **props):
     )
 
     # Additional properties required
+    pa.add_property('m_mat', stride=9)
+    pa.add_property('gradlmda', stride=3)
     pa.add_property('gradrho', stride=3)
 
     # default property arrays to save out
     pa.set_output_arrays([
-        'x', 'y', 'z', 'u', 'v', 'w', 'rho', 
-        'p', 'h', 'm', 
-        'vmag', 'vmag2', 'DX', 'DY', 'DZ', 'Dmag', 'lmda',
-        'pid', 'gid', 'tag', 
+        'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 
+        'pid', 'gid', 'tag'
     ])
-
     return pa
 ###########################################################################
 # EQUATIONS & RESPECTIVE IMPORTS
@@ -703,8 +696,8 @@ from pysph.sph.scheme import Scheme
 ### `\delta^+` SPH Scheme
 class DeltaPlusScheme(Scheme):
     def __init__(
-        self, fluids, solids, dim, rho0, c0, nu, p0, hdx, dx, h0, dt, gx=0.0, gy=0.0, 
-        gz=0.0, PST_boundedFlow=True, max_Dmag=0.05,
+        self, fluids, solids, dim, rho0, c0, nu, p0, hdx, dx, h0, dt, 
+        PST_boundedFlow=True, max_Dmag=0.05,
     ):
         self.fluids = fluids
         self.solids = solids
@@ -718,15 +711,12 @@ class DeltaPlusScheme(Scheme):
         self.dx = dx
         self.dt=dt
         self.h0 = h0
-        self.gx = gx
-        self.gy = gy
-        self.gz = gz
         self.PST_boundedFlow = PST_boundedFlow
         self.max_Dmag = max_Dmag
 
     def add_user_options(self, group):
         group.add_argument(
-            "--PST_Dmag", action="store", type=float, dest="max_Dmag", default=0.05,
+            "--pst-dmag", action="store", type=float, dest="max_Dmag", default=0.05,
             help="Maximum permissible norm of the correction from PST (`Dmag`) => [Rh = (delta r_i)/(delta x_i)]"
         )
 
@@ -735,7 +725,6 @@ class DeltaPlusScheme(Scheme):
         data = dict((var, self._smart_getattr(options, var))
                     for var in vars)
         self.configure(**data)
-
 
     def get_timestep(self, cfl=1.0):
         dt_cfl = cfl * self.h0/self.c0
@@ -749,13 +738,22 @@ class DeltaPlusScheme(Scheme):
         from pysph.base.kernels import WendlandQuintic
         from pysph.solver.solver import Solver
 
-        kernel = WendlandQuintic(dim=self.dim)
-        integrator = RK4Integrator(fluid=RK4Step())  
-        
-        from pysph.sph.integrator import EulerIntegrator
-        from pysph.sph.integrator_step import EulerStep
-        integrator = EulerIntegrator(fluid=EulerStep())      
+        if kernel is None:
+            kernel = WendlandQuintic(dim=self.dim)
+        steppers = {}
+        if extra_steppers is not None:
+            steppers.update(extra_steppers)
 
+        step_cls = RK4Step
+        for fluid in self.fluids:
+            if fluid not in steppers:
+                steppers[fluid] = step_cls()
+
+        cls = integrator_cls if integrator_cls is not None else RK4Integrator
+        integrator = cls(**steppers)
+
+        if 'dt' not in kw:
+            kw['dt'] = self.get_timestep()
         self.solver = Solver(
             dim=self.dim, integrator=integrator, kernel=kernel, **kw
         )
@@ -819,19 +817,31 @@ class DeltaPlusScheme(Scheme):
         return MultiStageEquations([stage0,stage1])
 
     def setup_properties(self, particles, clean=True):
+        temp = ['m_mat', 'gradlmda', 'gradrho']
+
         particle_arrays = dict([(p.name, p) for p in particles])
-        dummy = get_particle_array_DeltaPlus(name='junk')
-        props = list(dummy.properties.keys())
+        dummy = get_particle_array_DeltaPlus_fluid(name='junk')
+        props = list(dummy.properties.keys())   
+        for item in temp:
+            props.remove(item)
         output_props = dummy.output_property_arrays
         for fluid in self.fluids:
             pa = particle_arrays[fluid]
             self._ensure_properties(pa, props, clean)
             pa.set_output_arrays(output_props)
-        
+            pa.add_property('m_mat', stride=9)
+            pa.add_property('gradlmda', stride=3)
+            pa.add_property('gradrho', stride=3)
+
         dummy = get_particle_array_DeltaPlus_solid(name='junk')
         props = list(dummy.properties.keys())
+        for item in temp:
+            props.remove(item)
         output_props = dummy.output_property_arrays
         for solid in self.solids:
             pa = particle_arrays[solid]
             self._ensure_properties(pa, props, clean)
             pa.set_output_arrays(output_props)
+            pa.add_property('m_mat', stride=9)
+            pa.add_property('gradlmda', stride=3)
+            pa.add_property('gradrho', stride=3)

@@ -62,13 +62,11 @@ class LidDrivenCavity(Application):
         dt_force = 1.0
         self.tf = 10.0
         self.dt = min(dt_cfl, dt_viscous, dt_force)
+        self.Umax = Umax
 
-    def configure_scheme(self):
-        h0 = self.hdx * self.dx        
-        if self.options.scheme == 'dpsph':
-            self.scheme.configure(hdx=self.hdx, dx=self.dx, h0=self.h0, dt=self.dt, nu=self.nu)
-
-        self.scheme.configure_solver(tf=self.tf, dt=self.dt, pfreq=1)
+    def configure_scheme(self):   
+        self.scheme.configure(nu=self.nu, hdx=self.hdx, dx=self.dx, h0=self.h0, dt=self.dt,)
+        self.scheme.configure_solver(tf=self.tf, dt=self.dt, pfreq=100)
 
     def create_scheme(self):
         dpsph = DeltaPlusScheme(
@@ -82,7 +80,7 @@ class LidDrivenCavity(Application):
         hdx = self.hdx
         dx = self.dx
         ghost_extent = 5 * dx
-        # create all the particlesl
+        # create all the particles
         _x = np.arange(-ghost_extent - dx / 2, L + ghost_extent + dx / 2, dx)
         x, y = np.meshgrid(_x, _x)
         x = x.ravel()
@@ -102,8 +100,14 @@ class LidDrivenCavity(Application):
         fluid = solid.extract_particles(indices)
         fluid.set_name('fluid')
         solid.remove_particles(indices)
+        
+        # add requisite properties to the arrays:
+        self.scheme.setup_properties([fluid, solid])
 
-        print("Lid driven cavity :: Re = %d, dt = %g" % (self.re, self.dt))
+        disp_vals = (self.re, self.dt, self.dx)
+        print("Lid driven cavity :: Re = %d, dt = %g, dx = %g" % disp_vals)
+        temp = self.Umax*self.h0/self.nu
+        print('Check Factor = ', temp)
 
         # setup the particle properties
         volume = dx * dx
@@ -128,13 +132,11 @@ class LidDrivenCavity(Application):
             if solid.y[i] > L:
                 solid.u[i] = Umax
 
-        # add requisite properties to the arrays:
-        self.scheme.setup_properties([fluid, solid])
-
         # volume is set as dx^2
         fluid.V[:] = 1. / volume
         solid.V[:] = 1. / volume
 
+        fluid.lmda[:] = 1.0
         return [fluid, solid]
 
     def post_process(self, info_fname):
