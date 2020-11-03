@@ -33,7 +33,7 @@ def get_particle_array_DeltaPlus(constants=None, **props):
         'ax', 'ay', 'az', 'au', 'av', 'aw', 'arho',
         'x0', 'y0', 'z0', 'u0', 'v0', 'w0', 'rho0',
         'xstar', 'ystar', 'zstar', 'ustar', 'vstar', 'wstar', 'rhostar',
-        'vmag', 'vmag2', 'DX', 'DY', 'DZ', 'Dmag', 'lmda',
+        'vmag', 'vmag2', 'DX', 'DY', 'DZ', 'Dmag', 'lmda', 'V'
     ]
 
     pa = get_particle_array(
@@ -43,6 +43,7 @@ def get_particle_array_DeltaPlus(constants=None, **props):
     # Additional properties required for free surfaces
     pa.add_property('m_mat', stride=9)
     pa.add_property('gradlmda', stride=3)
+    pa.add_property('gradrho', stride=3)
 
     # default property arrays to save out
     pa.set_output_arrays([
@@ -54,11 +55,63 @@ def get_particle_array_DeltaPlus(constants=None, **props):
 
     return pa
 
+def get_particle_array_DeltaPlus_solid(constants=None, **props):
+    """Return a particle array for the :math:`\delta^+` - SPH Scheme.
+
+        This sets the defualt properties to be::
+
+            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'm', 'h', 'L00', 'L01', 
+            'L10', 'L11', 'lmda', 'delta_p', 'grad_rho1', 'grad_rho2', 
+            'DX', 'DY', 'DRh', 'arho', 'au', 'av', 'aw', 'gid', 'pid', 'tag']
+
+        Parameters:
+        -----------
+        constants : dict
+            Dictionary of constants
+
+        Other Parameters
+        ----------------
+        props : dict
+            Additional keywords passed are set as the property arrays.
+
+        See Also
+        --------
+        get_particle_array
+    """
+    # Properties required for :math:`\delta^+` - SPH Scheme
+    deltaPlus_props = [
+        'rho',
+        'ax', 'ay', 'az', 'au', 'av', 'aw', 'arho',
+        'x0', 'y0', 'z0', 'u0', 'v0', 'w0', 'rho0',
+        'xstar', 'ystar', 'zstar', 'ustar', 'vstar', 'wstar', 'rhostar',
+        'vmag', 'vmag2', 'DX', 'DY', 'DZ', 'Dmag', 'lmda', 'V',
+        'wij', 'wij2',
+        'ug', 'wf', 'wg', 'vf', 'vg', 'uf',
+    ]
+
+    pa = get_particle_array(
+        constants=constants, additional_props=deltaPlus_props, **props
+    )
+
+    # Additional properties required
+    pa.add_property('gradrho', stride=3)
+
+    # default property arrays to save out
+    pa.set_output_arrays([
+        'x', 'y', 'z', 'u', 'v', 'w', 'rho', 
+        'p', 'h', 'm', 
+        'vmag', 'vmag2', 'DX', 'DY', 'DZ', 'Dmag', 'lmda',
+        'pid', 'gid', 'tag', 
+    ])
+
+    return pa
 ###########################################################################
 # EQUATIONS & RESPECTIVE IMPORTS
 ###########################################################################
 from pysph.sph.equation import Equation, MultiStageEquations, Group
 from math import sqrt
+from textwrap import dedent
+from compyle.api import declare
 
 ### Kernel Correction------------------------------------------------------
 from pysph.sph.wc.kernel_correction import (
@@ -426,55 +479,25 @@ class PST(Equation):
     """
     def __init__(
         self, dest, sources, H, dt, dx, Uc0, boundedFlow, R_coeff=0.2, n_exp=4.0,
-        Rh=0.05,
-    ):
-        r'''
-            Parameters:
-            -----------
-            H : float
-                Kernel smoothing length (:math:`h`)
-
-            dt : float
-                Time step (:math:`\Delta t`)
-
-            dx : float
-                Initial particle spacing (:math:`\Delta x`)
-
-            Uc0 : float
-                :math:`\frac{U}{c_o}` value of the system
-
-            R_coeff : float, default = 0.2
-                Artificial pressure coefficient
-
-            n_exp : float, default = 4
-                Artificial pressure exponent
-
-            Rh : float, default = 0.05
-                Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during 
-                particle shifting 
-                (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
-
-            boundedFlow : boolean, default = False
-                If True, flow has free surface/s
-        '''       
-        
+        max_Dmag=0.05,
+    ):        
         self.R_coeff = R_coeff
         self.n_exp = n_exp
         self.H = H
         self.dx = dx
         self.Uc0 = Uc0
-        self.Rh = Rh
+        self.max_Dmag = max_Dmag
         self.boundedFlow = boundedFlow
         self.eps = H**2 * 0.01
         self.CONST = -0.5*dt*H 
 
         super(PST, self).__init__(dest, sources)
 
-    def initialize(self, d_idx, d_DX, d_DY, d_DZ, d_DRh):
+    def initialize(self, d_idx, d_DX, d_DY, d_DZ, d_Dmag):
         d_DX[d_idx] = 0.0
         d_DY[d_idx] = 0.0
         d_DZ[d_idx] = 0.0
-        d_DRh[d_idx] = 0.0
+        d_Dmag[d_idx] = 0.0
 
     def loop(
         self, d_idx, d_rho, d_DX, d_DY, d_DZ, s_idx, s_rho, s_m, XIJ, DWIJ, WIJ,
@@ -502,20 +525,20 @@ class PST(Equation):
         d_DY[d_idx] += self.CONST * self.Uc0 * fac * DWIJ[1]
         d_DZ[d_idx] += self.CONST * self.Uc0 * fac * DWIJ[2] 
 
-    def post_loop(self, d_idx, d_lmda, d_DX, d_DY, d_DZ, d_DRh):
+    def post_loop(self, d_idx, d_lmda, d_DX, d_DY, d_DZ, d_Dmag):
 
         lmdai = d_lmda[d_idx]
         if self.boundedFlow == True or lmdai > 0.75:
 
-            rh = sqrt(d_DX[d_idx]*d_DX[d_idx] + d_DY[d_idx]*d_DY[d_idx] + d_DZ[d_idx]*d_DZ[d_idx]) / self.H
-            d_DRh[d_idx] = rh
+            mag = sqrt(d_DX[d_idx]*d_DX[d_idx] + d_DY[d_idx]*d_DY[d_idx] + d_DZ[d_idx]*d_DZ[d_idx]) / self.dx
+            d_Dmag[d_idx] = mag
 
-            if rh > self.Rh:
-                # Check Rh condition and correct the values
-                d_DX[d_idx] = d_DX[d_idx] * self.Rh / rh
-                d_DY[d_idx] = d_DY[d_idx] * self.Rh / rh
-                d_DZ[d_idx] = d_DZ[d_idx] * self.Rh / rh
-                d_DRh[d_idx] = self.Rh
+            if mag > self.max_Dmag:
+                # Check norm condition and correct the values
+                d_DX[d_idx] = d_DX[d_idx] * self.max_Dmag / mag
+                d_DY[d_idx] = d_DY[d_idx] * self.max_Dmag / mag
+                d_DZ[d_idx] = d_DZ[d_idx] * self.max_Dmag / mag
+                d_Dmag[d_idx] = self.max_Dmag
 
 
 ###########################################################################
@@ -679,48 +702,66 @@ from pysph.sph.scheme import Scheme
 
 ### `\delta^+` SPH Scheme
 class DeltaPlusScheme(Scheme):
-    def __init__(self, fluids, solids, dim, cfl=1.0, hdx=1.33, PST_Dmag=0.05):
+    def __init__(
+        self, fluids, solids, dim, rho0, c0, nu, p0, hdx, dx, dt, gx=0.0, gy=0.0, 
+        gz=0.0, PST_boundedFlow=True, max_Dmag=0.05,
+    ):
         self.fluids = fluids
         self.solids = solids
-        self.dim = dim
-        self.cfl = cfl
-        self.hdx = hdx
-        self.PST_Dmag = PST_Dmag
         self.solver = None
+        self.rho0 = rho0
+        self.c0 = c0
+        self.p0 = p0
+        self.nu = nu
+        self.dim = dim
+        self.hdx = hdx
+        self.dx = dx
+        self.dt=dt
+        self.h0 = hdx * dx
+        self.gx = gx
+        self.gy = gy
+        self.gz = gz
+        self.PST_boundedFlow = PST_boundedFlow
+        self.max_Dmag = max_Dmag
 
     def add_user_options(self, group):
         group.add_argument(
-            "--cfl", action="store", type=float, dest="cfl", default=1.0,
-            help="Courant–Friedrichs–Lewy (CFL) Number"
-        )
-        group.add_argument(
-            "--K_hdx", action="store", type=float, dest="hdx", default=1.33,
-            help="Smoothing Radius of Kernel (`hdx`) => [h = (hdx) * dx]"
-        )
-        group.add_argument(
-            "--PST_Dmag", action="store", type=float, dest="PST_Dmag", default=0.05,
+            "--PST_Dmag", action="store", type=float, dest="max_Dmag", default=0.05,
             help="Maximum permissible norm of the correction from PST (`Dmag`) => [Rh = (delta r_i)/(delta x_i)]"
         )
 
     def consume_user_options(self, options):
-        vars = [
-            'clf', 'hdx', 'PST_Dmag',
-        ]
-
+        vars = ['max_Dmag']
         data = dict((var, self._smart_getattr(options, var))
                     for var in vars)
         self.configure(**data)
 
-    def get_timestep(self,):
-        dt_cfl = self.cfl * self.h0/self.c0
+
+    def get_timestep(self, cfl=1.0):
+        dt_cfl = cfl * self.h0/self.c0
         dt_viscous = 0.125 * self.h0**2/self.nu
         dt_force = 1.0
 
         return min(dt_cfl, dt_viscous, dt_force)
 
+    def configure_solver(self, kernel=None, integrator_cls=None,
+                         extra_steppers=None, **kw):
+        from pysph.base.kernels import WendlandQuintic
+        from pysph.solver.solver import Solver
+
+        kernel = WendlandQuintic(dim=self.dim)
+        integrator = RK4Integrator(fluid=RK4Step())  
+        
+        
+        integrator = EulerIntegrator(fluid=EulerStep())      
+
+        self.solver = Solver(
+            dim=self.dim, integrator=integrator, kernel=kernel, **kw
+        )
+
     def get_equations(self):
         all = self.fluids + self.solids
-
+        
         stage0 = []
         if self.solids:
             eq0 = []
@@ -773,39 +814,14 @@ class DeltaPlusScheme(Scheme):
 
         eq7 = []
         for fluid in self.fluids:
-            eq7.append(PST(dest=fluid, sources=all, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.c0, boundedFlow=self.PST_boundedFlow, Rh=self.PSR_Rh))
-        stage1.append(Group(equations=eq7, real=False))
+            eq7.append(PST(dest=fluid, sources=all, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.c0, boundedFlow=self.PST_boundedFlow, max_Dmag=self.max_Dmag))
+        #stage1.append(Group(equations=eq7, real=False))
 
-        return MultiStageEquations([stage0, stage1])
-
-    def configure_solver(self, kernel=None, integrator_cls=None,
-                         extra_steppers=None, **kw):
-        from pysph.base.kernels import WendlandQuintic
-        if kernel is None:
-            kernel = WendlandQuintic(dim=self.dim)
-        steppers = {}
-        if extra_steppers is not None:
-            steppers.update(extra_steppers)
-
-        step_cls = RK4Step
-        for fluid in self.fluids:
-            if fluid not in steppers:
-                steppers[fluid] = step_cls()
-
-        cls = integrator_cls if integrator_cls is not None else RK4Integrator
-        integrator = cls(**steppers)
-
-        from pysph.solver.solver import Solver
-        if 'dt' not in kw:
-            kw['dt'] = self.get_timestep()
-
-        self.solver = Solver(
-            dim=self.dim, integrator=integrator, kernel=kernel, **kw
-        )
+        return MultiStageEquations([stage0,stage1])
 
     def setup_properties(self, particles, clean=True):
         particle_arrays = dict([(p.name, p) for p in particles])
-        dummy = get_particle_array_deltaPlus(name='junk')
+        dummy = get_particle_array_DeltaPlus(name='junk')
         props = list(dummy.properties.keys())
         output_props = dummy.output_property_arrays
         for fluid in self.fluids:
@@ -813,8 +829,7 @@ class DeltaPlusScheme(Scheme):
             self._ensure_properties(pa, props, clean)
             pa.set_output_arrays(output_props)
         
-        
-        dummy = get_particle_array_deltaPlus(name='junk')
+        dummy = get_particle_array_DeltaPlus_solid(name='junk')
         props = list(dummy.properties.keys())
         output_props = dummy.output_property_arrays
         for solid in self.solids:
