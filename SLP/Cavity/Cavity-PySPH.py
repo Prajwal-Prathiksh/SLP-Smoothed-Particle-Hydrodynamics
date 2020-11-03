@@ -102,20 +102,16 @@ class Cavity(Application):
             help="Average velocities over these many saved timesteps."
         )
         group.add_argument(
-            "--ntf", action="store", type=int, dest="ntf", default=-1,
-            help="Number of timesteps"
-        )
-        group.add_argument(
             "--my_cfl", action="store", type=float, dest="cfl", default=1.0,
             help="CFL number"
         )
         group.add_argument(
-            "--my_hdx", action="store", type=float, dest="hdx", default=1.33,
+            "--hdx", action="store", type=float, dest="hdx", default=1.33,
             help="hdx value"
         )
         group.add_argument(
-            "--RH", action="store", type=float, dest="pst_rh", default=0.75,
-            help="PST's Rh value"
+            "--pst-dmag", action="store", type=float, dest="max_Dmag", default=0.05,
+            help="Maximum permissible norm of the correction from PST (`Dmag`) => [Rh = (delta r_i)/(delta x_i)]"
         )
         group.add_argument(
             "--hij_fac", action="store", type=float, dest="hij_fac", default=0.5,
@@ -144,17 +140,12 @@ class Cavity(Application):
         dt_force = 1.0
         self.dt = min(dt_cfl, dt_viscous, dt_force)
         self.tf = 10.0 
-        if self.options.ntf != -1:
-            self.tf = self.options.ntf * self.dt
         self.h0 = h0
         self.rho0 = rho0
         self.p0 = p0
         self.c0 = c0
 
-        self.PSR_Rh = self.options.pst_rh
-        self.PST_R_coeff = 0.2
-        self.PST_n_exp = 4.0
-        self.PST_Uc0 = self.c0
+        self.max_Dmag = self.options.max_Dmag
         self.PST_boundedFlow = True
 
         self.hij_fac = self.options.hij_fac
@@ -186,6 +177,8 @@ class Cavity(Application):
 
         disp_vals = (self.re, self.dt, self.dx)
         print("Lid driven cavity :: Re = %d, dt = %g, dx = %g" % disp_vals)
+        temp = self.Umax*self.h0/self.nu
+        print('Check Factor = ', temp)
 
         # setup the particle properties
         volume = dx * dx
@@ -229,7 +222,7 @@ class Cavity(Application):
             solid.add_property(i)
 
         add_props = [
-            'rho0', 'x0', 'y0', 'z0', 'lmda', 'DX', 'DY', 'DZ', 'DRh', 'vmag',
+            'rho0', 'x0', 'y0', 'z0', 'lmda', 'DX', 'DY', 'DZ', 'Dmag', 'vmag',
             'wij2',
             ]
         rk4_props = [
@@ -255,7 +248,7 @@ class Cavity(Application):
 
 
         fluid.set_output_arrays(
-            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 'DRh', 'vmag',
+            ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'h', 'm', 'Dmag', 'vmag',
             'vmag2', 'pid', 'gid', 'tag', 'lmda', 'DX', 'DY', 'DZ']
         )
         solid.set_output_arrays(
@@ -263,10 +256,6 @@ class Cavity(Application):
         )
 
         fluid.lmda[:] = 1.0
-
-        temp = self.Umax*self.h0/self.nu
-        print('Check Factor = ', temp)
-
         
         return [fluid, solid]
 
@@ -353,7 +342,7 @@ class Cavity(Application):
             ], real=False),
 
             Group(equations=[
-                PST(dest='fluid', sources=['fluid','solid'], H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.c0, boundedFlow=self.PST_boundedFlow, Rh=self.PSR_Rh),
+                PST(dest='fluid', sources=['fluid','solid'], H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.c0, boundedFlow=self.PST_boundedFlow, max_Dmag=self.max_Dmag),
             ], real=False),
         ]  
         
