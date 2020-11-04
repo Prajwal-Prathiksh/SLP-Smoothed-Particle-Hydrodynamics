@@ -45,7 +45,7 @@ class LidDrivenCavity(Application):
         )
         group.add_argument(
             "--hdx", action="store", type=float, dest="hdx", default=1.0,
-            help="Smoothing Radius of Kernel (`hdx`) => [h = (hdx) * dx]"
+            help="Ratio h/dx"
         )
     
     def consume_user_options(self):
