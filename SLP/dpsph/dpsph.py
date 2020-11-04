@@ -580,9 +580,10 @@ class PST(Equation):
 
                 x = d_DX[d_idx]
                 y = d_DY[d_idx]
-
-                d_DX[d_idx] = (1. - n1*n1)*x + (-n1*n2)*y
-                d_DY[d_idx] = (-n1*n2)*x + (1. - n2*n2)*y
+                
+                d_DX[d_idx] = (1.0 - n1*n1)*x + (-n1*n2)*y
+                d_DY[d_idx] = (-n1*n2)*x + (1.0 - n2*n2)*y
+                d_DZ[d_idx] = 0.0
 
             mag = sqrt(d_DX[d_idx]*d_DX[d_idx] + d_DY[d_idx]*d_DY[d_idx] + d_DZ[d_idx]*d_DZ[d_idx])
             d_Dmag[d_idx] = mag
