@@ -440,63 +440,32 @@ class PST_PreStep_2(Equation):
             d_gradlmda[d_idx*3 + 2] += fac * DWIJ[2]
 
 class PST(Equation):
-    r"""**Particle-Shifting Technique employed (:math:`\delta^+` - SPH Scheme)**
+    r"""**Particle-Shifting Technique - :math:`\delta^+` - SPH Scheme**
 
         ..math::
             \mathbf{r_i}^\ast=\mathbf{r_i}+\delta\mathbf{\hat{r_i}}
 
-            \delta \mathbf{r_i} = \frac{-U_{max}h\Delta t}{2}\sum_i \Bigg[1 + R\Bigg(\frac{W_{ij}}{W(\Delta)}\Bigg)^n\Bigg]\nabla \mathbf{W_{ij}} \Bigg(\frac{m_j}{\rho_i + \rho_j}\Bigg)
-        
-        where, 
-
-        ..math::
-            \delta\mathbf{\hat{r_i}}=\begin{cases}
-                0  & ,\lambda_i\in[0,0.4) \\
-                (\mathbb{I}-\mathbf{n_i}\otimes\mathbf{n_i})\delta\mathbf{r_i} 
-                & ,\lambda_i\in[0.4, 0.75] \\
-                \delta\mathbf{r_i} & ,\lambda_i\in(0.75,1]
+            \delta \mathbf{\hat{r_i}} = \begin{cases} \delta \mathbf{r_i}, & |\delta 
+            \mathbf{r_i}| \leq k \\ k . \frac{\delta \mathbf{r_i}}
+            {|\delta \mathbf{r_i}|}, & |\delta \mathbf{r_i}| > k 
             \end{cases}
 
-        ..math::
-            \delta\mathbf{r_i}=\frac{-\Delta t c_o(2h)^2}{h_i}.\sum_j\bigg[1+R
-            \bigg(\frac{W_{ij}}{W(\Delta p)}\bigg)^n\bigg]\nabla_i W_{ij}\bigg(
-            \frac{m_j}{\rho_i+\rho_j}\bigg)
+            \delta \mathbf{r_i} = \frac{-c_o h\Delta t}{2}\sum_i \Bigg[1 + 
+            R\Bigg(\frac{W_{ij}}{W(\Delta)}\Bigg)^n\Bigg]\nabla \mathbf{W_{ij}} 
+            \Bigg(\frac{m_j}{\rho_i + \rho_j}\Bigg)
 
-        ..math::
-            \mathbf{n_i}=\frac{\langle\nabla\lambda_i\rangle}{|\langle\nabla
-            \lambda_i\rangle|}
-
-        ..math::
-            \langle\nabla\lambda_i\rangle=\sum_j(\lambda_j-\lambda_i)\otimes
-            \mathbb{L}_i\nabla_i W_{ij}V_j
-
-        ..math::
-            \lambda_i=\text{min}\big(\text{eigenvalue}(\mathbb{L_i^{-1}})\big)
-
-        ..math::
-            \mathbb{L_i}=\bigg[\sum_j\mathbf{r_{ji}}\otimes\nabla_i W_{ij}V_j
-            \bigg]^{-1}
-
+            k=\gamma\Delta x_i
 
         References:
         -----------
-        .. [Sun2017] Sun, P. N., et al. “The δ p l u s -SPH Model: Simple
-        Procedures for a Further Improvement of the SPH Scheme.” Computer 
-        Methods in Applied Mechanics and Engineering, vol. 315, Mar. 2017, pp. 
-        25–49. DOI.org (Crossref), doi:10.1016/j.cma.2016.10.028.
+        .. [Sun2017] P. N. Sun, A. Colagrossi, S. Marrone, and A. M. Zhang, “The 
+            δplus-SPH model: Simple procedures for a further improvement of the SPH 
+            scheme,” Comput. Methods Appl. Mech. Eng., vol. 315, pp. 25–49, Mar. 
+            2017, doi: 10.1016/j.cma.2016.10.028.
 
-        .. [Sun2019] Sun, P. N., et al. “A Consistent Approach to Particle 
-        Shifting in the δ - Plus -SPH Model.” Computer Methods in Applied 
-        Mechanics and Engineering, vol. 348, May 2019, pp. 912–34. DOI.org 
-        (Crossref), doi:10.1016/j.cma.2019.01.045.
-
-        .. [Monaghan2000] Monaghan, J. J. “SPH without a Tensile Instability.” 
-        Journal of Computational Physics, vol. 159, no. 2, Apr. 2000, pp. 
-        290–311. DOI.org (Crossref), doi:10.1006/jcph.2000.6439.
-        
         Parameters:
         -----------
-        H : float
+        h : float
             Kernel smoothing length (:math:`h`)
 
         dt : float
@@ -505,36 +474,64 @@ class PST(Equation):
         dx : float
             Initial particle spacing (:math:`\Delta x`)
 
-        Uc0 : float
-            :math:`\frac{U}{c_o}` value of the system
+        c0 : float
+            Speed of sound in the system (:math:`c_o`)
 
         boundedFlow : boolean
             If True, flow has free surface/s
 
-        R_coeff : float, default = 0.2
+        R : float, default = 0.2
             Artificial pressure coefficient
 
-        n_exp : float, default = 4
+        n : float, default = 4
             Artificial pressure exponent
 
-        Rh : float, default = 0.05
-            Maximum :math:`\frac{|\delta r_i|}{h}` value allowed during 
-            particle shifting 
-            (Note: :math:`\delta r_i = 0` if :math:`\frac{|\delta r_i|}{h}>R_h`)
+        gamma : float, default = 0.05
+            Maximum permissible magnitude of :math:`\delta\mathbf{r_i}` in terms
+            of :math:`\gamma\Delta x`
     """
     def __init__(
-        self, dest, sources, H, dt, dx, Uc0, boundedFlow, R_coeff=0.2, n_exp=4.0,
-        max_Dmag=0.05,
-    ):        
-        self.R_coeff = R_coeff
-        self.n_exp = n_exp
-        self.H = H
+        self, dest, sources, h, dt, dx, c0, boundedFlow, R=0.2, n=4.0,
+        gamma=0.05,
+    ):
+        r'''
+            Parameters:
+            -----------
+            H : float
+                Kernel smoothing length (:math:`h`)
+
+            dt : float
+                Time step (:math:`\Delta t`)
+
+            dx : float
+                Initial particle spacing (:math:`\Delta x`)
+
+            c0 : float
+                Speed of sound in the system (:math:`c_o`)
+
+            boundedFlow : boolean
+                If True, flow has free surface/s
+
+            R : float, default = 0.2
+                Artificial pressure coefficient
+
+            n : float, default = 4
+                Artificial pressure exponent
+
+            gamma : float, default = 0.05
+                Maximum permissible magnitude of :math:`\delta\mathbf{r_i}` in terms
+                of :math:`\gamma\Delta x`
+        '''
+        self.R = R
+        self.n = n
+        self.h = h
         self.dx = dx
-        self.Uc0 = Uc0
-        self.max_Dmag = max_Dmag
+        self.c0 = c0
+        self.gamma = gamma
         self.boundedFlow = boundedFlow
-        self.eps = H**2 * 0.01
-        self.CONST = -0.5*dt*H 
+        self.eps = self.h**2 * 0.01
+        self.CONST = -0.5*dt*self.h*self.c0
+        self.k = self.gamma * self.dx
 
         super(PST, self).__init__(dest, sources)
 
@@ -553,37 +550,38 @@ class PST(Equation):
         mj = s_m[s_idx]
 
         # Calculate Kernel values
-        w_delta_s = SPH_KERNEL.kernel(XIJ, self.dx, self.H)
+        w_delta_s = SPH_KERNEL.kernel(XIJ, self.dx, self.h)
 
         ################################################################
         # Calculate \delta r_i
         ################################################################
 
         # Calcuate fij
-        fij = self.R_coeff * pow((WIJ/(self.eps+w_delta_s)), self.n_exp)
+        fij = self.R * pow((WIJ/(self.eps+w_delta_s)), self.n)
 
         # Calcuate multiplicative factor
         fac = (1.0 + fij)*(mj/(rhoi+rhoj+self.eps))
 
         # Sum \delta r_i
-        d_DX[d_idx] += self.CONST * self.Uc0 * fac * DWIJ[0]
-        d_DY[d_idx] += self.CONST * self.Uc0 * fac * DWIJ[1]
-        d_DZ[d_idx] += self.CONST * self.Uc0 * fac * DWIJ[2] 
+        d_DX[d_idx] += self.CONST * fac * DWIJ[0]
+        d_DY[d_idx] += self.CONST * fac * DWIJ[1]
+        d_DZ[d_idx] += self.CONST * fac * DWIJ[2] 
 
     def post_loop(self, d_idx, d_lmda, d_DX, d_DY, d_DZ, d_Dmag):
 
         lmdai = d_lmda[d_idx]
         if self.boundedFlow == True or lmdai > 0.75:
 
-            mag = sqrt(d_DX[d_idx]*d_DX[d_idx] + d_DY[d_idx]*d_DY[d_idx] + d_DZ[d_idx]*d_DZ[d_idx]) / self.dx
+            mag = sqrt(d_DX[d_idx]*d_DX[d_idx] + d_DY[d_idx]*d_DY[d_idx] + d_DZ[d_idx]*d_DZ[d_idx])
             d_Dmag[d_idx] = mag
 
-            if mag > self.max_Dmag:
+            if mag > self.k:
                 # Check norm condition and correct the values
-                d_DX[d_idx] = d_DX[d_idx] * self.max_Dmag / mag
-                d_DY[d_idx] = d_DY[d_idx] * self.max_Dmag / mag
-                d_DZ[d_idx] = d_DZ[d_idx] * self.max_Dmag / mag
-                d_Dmag[d_idx] = self.max_Dmag
+                fac = self.k / mag
+                d_DX[d_idx] *= fac
+                d_DY[d_idx] *= fac
+                d_DZ[d_idx] *= fac
+                d_Dmag[d_idx] = self.k
 
 
 ###########################################################################
@@ -863,7 +861,7 @@ class DeltaPlusScheme(Scheme):
 
         eq7 = []
         for fluid in self.fluids:
-            eq7.append(PST(dest=fluid, sources=all, H=self.h0, dt=self.dt, dx=self.dx, Uc0=self.c0, boundedFlow=self.PST_boundedFlow, max_Dmag=self.max_Dmag))
+            eq7.append(PST(dest=fluid, sources=all, h=self.h0, dt=self.dt, dx=self.dx, c0=self.c0, boundedFlow=self.PST_boundedFlow, gamma=self.max_Dmag))
         stage1.append(Group(equations=eq7, real=False))
 
         return MultiStageEquations([stage0,stage1])
