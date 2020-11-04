@@ -13,7 +13,7 @@ from pysph.sph.wc.edac import EDACScheme
 # Include path
 import sys
 sys.path.insert(1, 'E:\IIT Bombay - Miscellaneous\Winter Project\SLP-Smoothed-Particle-Hydrodynamics')
-from SLP.dpsph.DeltaPlus import DeltaPlusScheme
+from SLP.dpsph.dpsph import DeltaPlusScheme
 
 # numpy
 import numpy as np

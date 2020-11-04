@@ -745,10 +745,91 @@ from pysph.sph.scheme import Scheme
 
 ### `\delta^+` SPH Scheme
 class DeltaPlusScheme(Scheme):
+    r"""*:math:`\delta^+` SPH Scheme*
+    
+        References
+        -----------
+        .. [Sun2018] P. N. Sun, A. Colagrossi, and A. M. Zhang, “Numerical 
+            simulation of the self-propulsive motion of a fishlike swimming foil 
+            using the δ+-SPH model,” Theor. Appl. Mech. Lett., vol. 8, no. 2, 
+            pp. 115–125, 2018, doi: 10.1016/j.taml.2018.02.007.
+
+        .. [Sun2017] P. N. Sun, A. Colagrossi, S. Marrone, and A. M. Zhang, “The 
+            δplus-SPH model: Simple procedures for a further improvement of the SPH 
+            scheme,” Comput. Methods Appl. Mech. Eng., vol. 315, pp. 25–49, Mar. 
+            2017, doi: 10.1016/j.cma.2016.10.028.
+
+        Parameters:
+        -----------
+        dim: int
+            Dimensionality of the problem
+
+        rho0: float
+            Initial denisty of the system
+
+        c0: float
+            Speed of sound of the system
+
+        nu: float
+            Kinematic viscosity of the system
+
+        p0: float
+            Initial pressure of the system
+
+        hdx: float
+            `hdx` value for the kernel length
+
+        dx: float
+            Inital spacing of the particles in the system
+
+        dt : float
+            Time step of the problem
+
+        boundedFlow : boolean
+            If True, flow has free surface/s
+
+        gamma : float, default = 0.05
+            Maximum permissible magnitude of :math:`\delta\mathbf{r_i}` in terms
+            of :math:`\gamma\Delta x`
+    """
     def __init__(
-        self, fluids, solids, dim, rho0, c0, nu, p0, hdx, dx, h0, dt, 
-        PST_boundedFlow=True, max_Dmag=0.05,
+        self, fluids, solids, dim, rho0, c0, nu, p0, h0, hdx, dx, dt, 
+        boundedFlow=True, gamma=0.05,
     ):
+        r'''
+            Parameters:
+            -----------
+            dim: int
+                Dimensionality of the problem
+
+            rho0: float
+                Initial denisty of the system
+
+            c0: float
+                Speed of sound of the system
+
+            nu: float
+                Kinematic viscosity of the system
+
+            p0: float
+                Initial pressure of the system
+
+            hdx: float
+                `hdx` value for the kernel length
+
+            dx: float
+                Inital spacing of the particles in the system
+
+            dt : float
+                Time step of the problem
+
+            boundedFlow : boolean
+                If True, flow has free surface/s
+
+            gamma : float, default = 0.05
+                Maximum permissible magnitude of :math:`\delta\mathbf{r_i}` in terms
+                of :math:`\gamma\Delta x`
+            '''
         self.fluids = fluids
         self.solids = solids
         self.solver = None
@@ -761,17 +842,17 @@ class DeltaPlusScheme(Scheme):
         self.dx = dx
         self.dt=dt
         self.h0 = h0
-        self.PST_boundedFlow = PST_boundedFlow
-        self.max_Dmag = max_Dmag
+        self.boundedFlow = boundedFlow
+        self.gamma = gamma
 
     def add_user_options(self, group):
         group.add_argument(
-            "--pst-dmag", action="store", type=float, dest="max_Dmag", default=0.05,
-            help="Maximum permissible norm of the correction from PST (`Dmag`) => [Rh = (delta r_i)/(delta x_i)]"
+            "--gamma", action="store", type=float, dest="gamma", default=0.05,
+            help="Maximum permissible magnitude of :math:`\delta\mathbf{r_i}` in terms of :math:`\gamma\Delta x`"
         )
 
     def consume_user_options(self, options):
-        vars = ['max_Dmag']
+        vars = ['gamma']
         data = dict((var, self._smart_getattr(options, var))
                     for var in vars)
         self.configure(**data)
@@ -855,13 +936,13 @@ class DeltaPlusScheme(Scheme):
         for fluid in self.fluids:
             eq6.append(GradientCorrectionPreStep(dest=fluid, sources=all, dim=self.dim))
             eq6.append(GradientCorrection(dest=fluid, sources=all, dim=self.dim))
-            eq6.append(PST_PreStep_1(dest=fluid, sources=all, dim=self.dim, boundedFlow=self.PST_boundedFlow))
-            eq6.append(PST_PreStep_2(dest=fluid, sources=all, boundedFlow=self.PST_boundedFlow))
+            eq6.append(PST_PreStep_1(dest=fluid, sources=all, dim=self.dim, boundedFlow=self.boundedFlow))
+            eq6.append(PST_PreStep_2(dest=fluid, sources=all, boundedFlow=self.boundedFlow))
         stage1.append(Group(equations=eq6, real=False))
 
         eq7 = []
         for fluid in self.fluids:
-            eq7.append(PST(dest=fluid, sources=all, h=self.h0, dt=self.dt, dx=self.dx, c0=self.c0, boundedFlow=self.PST_boundedFlow, gamma=self.max_Dmag))
+            eq7.append(PST(dest=fluid, sources=all, h=self.h0, dt=self.dt, dx=self.dx, c0=self.c0, boundedFlow=self.boundedFlow, gamma=self.gamma))
         stage1.append(Group(equations=eq7, real=False))
 
         return MultiStageEquations([stage0,stage1])

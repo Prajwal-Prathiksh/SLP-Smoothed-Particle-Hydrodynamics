@@ -223,12 +223,6 @@ class LaminarViscosityDeltaSPHPreStep(Equation):
         d_av[d_idx] += fac*DWIJ[1]
         d_aw[d_idx] += fac*DWIJ[2]
 
-    def post_loop(self, d_idx, d_au, d_av, d_aw, d_rho):        
-        
-        d_au[d_idx] = d_au[d_idx] + self.fx
-        d_av[d_idx] = d_av[d_idx] + self.fy
-        d_aw[d_idx] = d_aw[d_idx] + self.fz
-
 ### Position Equation------------------------------------------------------
 class Spatial_Acceleration(Equation):
     r""" *Spatial Acceleration*
@@ -578,12 +572,12 @@ class PST(Equation):
         lmdai = d_lmda[d_idx]
         if self.boundedFlow == True or lmdai > 0.75:
 
-            Dmag = sqrt(d_DX[d_idx]*d_DX[d_idx] + d_DY[d_idx]*d_DY[d_idx] + d_DZ[d_idx]*d_DZ[d_idx])
-            d_Dmag[d_idx] = Dmag
+            mag = sqrt(d_DX[d_idx]*d_DX[d_idx] + d_DY[d_idx]*d_DY[d_idx] + d_DZ[d_idx]*d_DZ[d_idx])
+            d_Dmag[d_idx] = mag
 
-            if Dmag > self.k:
+            if mag > self.k:
                 # Check norm condition and correct the values
-                fac = self.k / Dmag
+                fac = self.k / mag
                 d_DX[d_idx] *= fac
                 d_DY[d_idx] *= fac
                 d_DZ[d_idx] *= fac
@@ -799,15 +793,50 @@ class DeltaPlusScheme(Scheme):
             of :math:`\gamma\Delta x`
     """
     def __init__(
-        self, fluids, solids, dim, rho0, c0, nu, p0, hdx, dx, dt, 
-        boundedFlow, gamma=0.05,
+        self, fluids, solids, dim, rho0, c0, nu, p0, h0, hdx, dx, dt, 
+        boundedFlow=True, gamma=0.05,
     ):
+        r'''
+            Parameters:
+            -----------
+            dim: int
+                Dimensionality of the problem
+
+            rho0: float
+                Initial denisty of the system
+
+            c0: float
+                Speed of sound of the system
+
+            nu: float
+                Kinematic viscosity of the system
+
+            p0: float
+                Initial pressure of the system
+
+            hdx: float
+                `hdx` value for the kernel length
+
+            dx: float
+                Inital spacing of the particles in the system
+
+            dt : float
+                Time step of the problem
+
+            boundedFlow : boolean
+                If True, flow has free surface/s
+
+            gamma : float, default = 0.05
+                Maximum permissible magnitude of :math:`\delta\mathbf{r_i}` in terms
+                of :math:`\gamma\Delta x`
+            '''
         self.fluids = fluids
         self.solids = solids
         self.solver = None
         self.rho0 = rho0
         self.c0 = c0
         self.p0 = p0
+        self.h0 = h0
         self.nu = nu
         self.dim = dim
         self.hdx = hdx
@@ -815,7 +844,6 @@ class DeltaPlusScheme(Scheme):
         self.dt=dt
         self.boundedFlow = boundedFlow
         self.gamma = gamma
-        self.h0 = self.dx * self.hdx
 
     def add_user_options(self, group):
         group.add_argument(
