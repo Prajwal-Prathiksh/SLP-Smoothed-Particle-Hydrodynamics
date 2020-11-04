@@ -1,11 +1,26 @@
+r"""
+:math:`\delta^+` SPH
+#####################
+References
+-----------
+    .. [Sun2018] P. N. Sun, A. Colagrossi, and A. M. Zhang, “Numerical 
+        simulation of the self-propulsive motion of a fishlike swimming foil 
+        using the δ+-SPH model,” Theor. Appl. Mech. Lett., vol. 8, no. 2, 
+        pp. 115–125, 2018, doi: 10.1016/j.taml.2018.02.007.
+
+    .. [Sun2017] P. N. Sun, A. Colagrossi, S. Marrone, and A. M. Zhang, “The 
+        δplus-SPH model: Simple procedures for a further improvement of the SPH 
+        scheme,” Comput. Methods Appl. Mech. Eng., vol. 315, pp. 25–49, Mar. 
+        2017, doi: 10.1016/j.cma.2016.10.028.
+"""
 ###########################################################################
 # PARTICLE ARRAY
 ###########################################################################
 from pysph.base.utils import get_particle_array
 
-### `\delta^+` Particle Array
+### `\delta^+` Fluid Particle Array
 def get_particle_array_DeltaPlus_fluid(constants=None, **props):
-    """Returns a fluid particle array for the :math:`\delta^+` - SPH Scheme.
+    """Returns a fluid particle array for the :math:`\delta^+` - SPH Scheme
 
         This sets the default properties to be::
 
@@ -54,8 +69,9 @@ def get_particle_array_DeltaPlus_fluid(constants=None, **props):
     ])
     return pa
 
+### `\delta^+` Solid Particle Array
 def get_particle_array_DeltaPlus_solid(constants=None, **props):
-    """Returns a solid particle array for the :math:`\delta^+` - SPH Scheme.
+    """Returns a solid particle array for the :math:`\delta^+` - SPH Scheme
 
         This sets the default properties to be::
 
@@ -98,6 +114,8 @@ def get_particle_array_DeltaPlus_solid(constants=None, **props):
         'pid', 'gid', 'tag'
     ])
     return pa
+
+
 ###########################################################################
 # EQUATIONS & RESPECTIVE IMPORTS
 ###########################################################################
@@ -124,6 +142,39 @@ from pysph.sph.wc.transport_velocity import ContinuityEquation
 from pysph.sph.wc.viscosity import LaminarViscosityDeltaSPH
 
 class LaminarViscosityDeltaSPHPreStep(Equation):
+    r""" *Momentum equation defined by the :math:`\delta^+` SPH scheme*
+
+        ..math::
+            \frac{D\mathbf{u_i}}{Dt}=\frac{1}{\rho_i}\sum_j\Big(F_{ij}\nabla_i 
+            W_{ij}V_j\big)+\mathbf{f_i}
+
+        where,
+
+        ..math::
+            F_{ij}=\begin{cases}
+                -(p_j+p_i), & p_i\geq 0\\ 
+                -(p_j-p_i), & p_i<0
+                \end{cases}
+
+        References:
+        -----------
+
+        .. [Sun2018] P. N. Sun, A. Colagrossi, and A. M. Zhang, “Numerical 
+            simulation of the self-propulsive motion of a fishlike swimming foil 
+            using the δ+-SPH model,” Theor. Appl. Mech. Lett., vol. 8, no. 2, 
+            pp. 115–125, 2018, doi: 10.1016/j.taml.2018.02.007.
+
+        Parameters:
+        -----------
+        fx : float, Default = 0.0
+            Body-force in x-axis
+
+        fy : float, Default = 0.0
+            Body-force in y-axis
+
+        fz : float, Default = 0.0
+            Body-force in z-axis
+    """
 
     def __init__(self, dest, sources, fx=0.0, fy=0.0, fz=0.0):
         r"""
@@ -165,21 +216,20 @@ class LaminarViscosityDeltaSPHPreStep(Equation):
         else:
             Fij = -1.0*(Pi + Pj)
 
-        tmp = Fij*Vj/rhoi
+        fac = Fij*Vj/rhoi
 
         # Accelerations
-        d_au[d_idx] += tmp*DWIJ[0]
-        d_av[d_idx] += tmp*DWIJ[1]
-        d_aw[d_idx] += tmp*DWIJ[2]
-
-    def post_loop(self, d_idx, d_au, d_av, d_aw, d_rho):        
-        
-        d_au[d_idx] = d_au[d_idx] + self.fx
-        d_av[d_idx] = d_av[d_idx] + self.fy
-        d_aw[d_idx] = d_aw[d_idx] + self.fz
+        d_au[d_idx] += fac*DWIJ[0]
+        d_av[d_idx] += fac*DWIJ[1]
+        d_aw[d_idx] += fac*DWIJ[2]
 
 ### Position Equation------------------------------------------------------
 class Spatial_Acceleration(Equation):
+    r""" *Spatial Acceleration*
+
+        ..math::
+            \frac{D\mathbf{r_i}}{Dt}=\mathbf{u_i}
+    """
     def __init__(self, dest, sources):
         super(Spatial_Acceleration, self).__init__(dest, sources)
 
@@ -257,6 +307,11 @@ class SetPressureSolid(Equation):
 class PST_PreStep_1(Equation):
     r"""**PST_PreStep_1**
 
+        See :class:`pysph.sph.wc.kernel_correction.GradientCorrectionPreStep`
+
+        Calculates the minimum eigenvalue :math:`\lambda_i` of the 
+        :math:`\mathbb{L}` matrix, only if the flow has free surfaces
+
         Parameters:
         -----------
         dim : integer
@@ -264,6 +319,11 @@ class PST_PreStep_1(Equation):
 
         boundedFlow : boolean
             If True, flow has free surface/s
+
+        Notes:
+        ------ 
+        This equation needs to be called after `GradientCorrectionPreStep` has 
+        computed the :math:`\mathbb{L}` matrix
     """
     def __init__(self, dest, sources, dim, boundedFlow):
         r'''
@@ -272,7 +332,7 @@ class PST_PreStep_1(Equation):
             dim : integer
                 Number of dimensions
 
-            boundedFlow : boolean, default = False
+            boundedFlow : boolean,
                 If True, flow has free surface/s
         '''                   
         self.dim = dim
@@ -328,16 +388,17 @@ class PST_PreStep_2(Equation):
 
         See :class:`pysph.sph.wc.kernel_correction.GradientCorrectionPreStep` 
         and :class:`pysph.sph.wc.kernel_correction.GradientCorrection` which
-        multiples the matrix :math:`L_a` with :math:`\nabla W_{ij}`
+        multiples the matrix :math:`\mathbb{L}` with :math:`\nabla W_{ij}`
+
+        Calculates :math:`\langle\nabla\lambda_i\rangle`
+
+
+        ..math::
+            \langle\nabla\lambda_i\rangle=\sum_j(\lambda_j-\lambda_i)\otimes
+            \mathbb{L}_i\nabla_i W_{ij}V_j
 
         Parameters:
         -----------
-        H : float
-            Kernel smoothing length (:math:`h`)
-
-        dim : integer
-            Number of dimensions
-
         boundedFlow : boolean
             If True, flow has free surface/s
 
@@ -345,25 +406,16 @@ class PST_PreStep_2(Equation):
         ------ 
         This equation needs to be grouped in the same group as 
         `GradientCorrection` and `PST_PreStep_1`, since it needs to be 
-        pre-multiplied with :math:`L_a` and requires the pre-calculated
+        pre-multiplied with :math:`\mathbb{L}` and requires the pre-calculated
         :math:`\lambda_i` value
         """
-    def __init__(self, dest, sources, H, dim, boundedFlow):
+    def __init__(self, dest, sources, boundedFlow):
         r'''
             Parameters:
             -----------
-            H : float
-                Kernel smoothing length (:math:`h`)
-
-            dim : integer
-                Number of dimensions
-
             boundedFlow : boolean
                 If True, flow has free surface/s
         '''       
-            
-        self.H = H
-        self.dim = dim
         self.boundedFlow = boundedFlow
         
         super(PST_PreStep_2, self).__init__(dest, sources)
@@ -806,7 +858,7 @@ class DeltaPlusScheme(Scheme):
             eq6.append(GradientCorrectionPreStep(dest=fluid, sources=all, dim=self.dim))
             eq6.append(GradientCorrection(dest=fluid, sources=all, dim=self.dim))
             eq6.append(PST_PreStep_1(dest=fluid, sources=all, dim=self.dim, boundedFlow=self.PST_boundedFlow))
-            eq6.append(PST_PreStep_2(dest=fluid, sources=all, dim=self.dim, H=self.h0, boundedFlow=self.PST_boundedFlow))
+            eq6.append(PST_PreStep_2(dest=fluid, sources=all, boundedFlow=self.PST_boundedFlow))
         stage1.append(Group(equations=eq6, real=False))
 
         eq7 = []
