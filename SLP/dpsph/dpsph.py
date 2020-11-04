@@ -318,7 +318,7 @@ class PST_PreStep_1(Equation):
             Number of dimensions
 
         boundedFlow : boolean
-            If True, flow has free surface/s
+            If False, flow has free surface/s
 
         Notes:
         ------ 
@@ -333,7 +333,7 @@ class PST_PreStep_1(Equation):
                 Number of dimensions
 
             boundedFlow : boolean,
-                If True, flow has free surface/s
+                If False, flow has free surface/s
         '''                   
         self.dim = dim
         self.boundedFlow = boundedFlow
@@ -400,7 +400,7 @@ class PST_PreStep_2(Equation):
         Parameters:
         -----------
         boundedFlow : boolean
-            If True, flow has free surface/s
+            If False, flow has free surface/s
 
         Notes:
         ------ 
@@ -414,7 +414,7 @@ class PST_PreStep_2(Equation):
             Parameters:
             -----------
             boundedFlow : boolean
-                If True, flow has free surface/s
+                If False, flow has free surface/s
         '''       
         self.boundedFlow = boundedFlow
         
@@ -478,7 +478,7 @@ class PST(Equation):
             Speed of sound in the system (:math:`c_o`)
 
         boundedFlow : boolean
-            If True, flow has free surface/s
+            If False, flow has free surface/s
 
         R : float, default = 0.2
             Artificial pressure coefficient
@@ -510,7 +510,7 @@ class PST(Equation):
                 Speed of sound in the system (:math:`c_o`)
 
             boundedFlow : boolean
-                If True, flow has free surface/s
+                If False, flow has free surface/s
 
             R : float, default = 0.2
                 Artificial pressure coefficient
@@ -542,35 +542,47 @@ class PST(Equation):
         d_Dmag[d_idx] = 0.0
 
     def loop(
-        self, d_idx, d_rho, d_DX, d_DY, d_DZ, s_idx, s_rho, s_m, XIJ, DWIJ, WIJ,
+        self, d_idx, d_rho, d_DX, d_DY, d_DZ, d_lmda, s_idx, s_rho, s_m, XIJ, DWIJ, WIJ,
         SPH_KERNEL
     ):
-        rhoi = d_rho[d_idx]
-        rhoj = s_rho[s_idx]
-        mj = s_m[s_idx]
+        lmdai = d_lmda[d_idx]
+        if lmdai >= 0.4 or self.boundedFlow == True:
+            rhoi = d_rho[d_idx]
+            rhoj = s_rho[s_idx]
+            mj = s_m[s_idx]
 
-        # Calculate Kernel values
-        w_delta_s = SPH_KERNEL.kernel(XIJ, self.dx, self.h)
+            # Calculate Kernel values
+            w_delta_s = SPH_KERNEL.kernel(XIJ, self.dx, self.h)
 
-        ################################################################
-        # Calculate \delta r_i
-        ################################################################
+            ################################################################
+            # Calculate \delta r_i
+            ################################################################
 
-        # Calcuate fij
-        fij = self.R * pow((WIJ/(self.eps+w_delta_s)), self.n)
+            # Calcuate fij
+            fij = self.R * pow((WIJ/(self.eps+w_delta_s)), self.n)
 
-        # Calcuate multiplicative factor
-        fac = (1.0 + fij)*(mj/(rhoi+rhoj+self.eps))
+            # Calcuate multiplicative factor
+            fac = (1.0 + fij)*(mj/(rhoi+rhoj+self.eps))
 
-        # Sum \delta r_i
-        d_DX[d_idx] += self.CONST * fac * DWIJ[0]
-        d_DY[d_idx] += self.CONST * fac * DWIJ[1]
-        d_DZ[d_idx] += self.CONST * fac * DWIJ[2] 
+            # Sum \delta r_i
+            d_DX[d_idx] += self.CONST * fac * DWIJ[0]
+            d_DY[d_idx] += self.CONST * fac * DWIJ[1]
+            d_DZ[d_idx] += self.CONST * fac * DWIJ[2] 
 
-    def post_loop(self, d_idx, d_lmda, d_DX, d_DY, d_DZ, d_Dmag):
+    def post_loop(self, d_idx, d_lmda, d_DX, d_DY, d_DZ, d_Dmag, d_gradlmda):
 
         lmdai = d_lmda[d_idx]
-        if self.boundedFlow == True or lmdai > 0.75:
+        if self.boundedFlow == True or lmdai >= 0.4:
+
+            if self.boundedFlow == False and lmdai <= 0.75:
+                n1 = d_gradlmda[d_idx*3 + 0]
+                n2 = d_gradlmda[d_idx*3 + 1]
+
+                x = d_DX[d_idx]
+                y = d_DY[d_idx]
+
+                d_DX[d_idx] = (1. - n1*n1)*x + (-n1*n2)*y
+                d_DY[d_idx] = (-n1*n2)*x + (1. - n2*n2)*y
 
             mag = sqrt(d_DX[d_idx]*d_DX[d_idx] + d_DY[d_idx]*d_DY[d_idx] + d_DZ[d_idx]*d_DZ[d_idx])
             d_Dmag[d_idx] = mag
@@ -786,7 +798,7 @@ class DeltaPlusScheme(Scheme):
             Time step of the problem
 
         boundedFlow : boolean
-            If True, flow has free surface/s
+            If False, flow has free surface/s
 
         gamma : float, default = 0.05
             Maximum permissible magnitude of :math:`\delta\mathbf{r_i}` in terms
@@ -823,8 +835,8 @@ class DeltaPlusScheme(Scheme):
             dt : float
                 Time step of the problem
 
-            boundedFlow : boolean
-                If True, flow has free surface/s
+            boundedFlow : boolean, default= True
+                If False, flow has free surface/s
 
             gamma : float, default = 0.05
                 Maximum permissible magnitude of :math:`\delta\mathbf{r_i}` in terms
@@ -847,12 +859,16 @@ class DeltaPlusScheme(Scheme):
 
     def add_user_options(self, group):
         group.add_argument(
+            "--bounded-flow", action="store_false", dest="boundedFlow", default=True,
+            help="If False, flow in the problem has free surface/s"
+        )
+        group.add_argument(
             "--gamma", action="store", type=float, dest="gamma", default=0.05,
-            help="Maximum permissible magnitude of :math:`\delta\mathbf{r_i}` in terms of :math:`\gamma\Delta x`"
+            help="Maximum permissible magnitude of the PST correction `Dmag` in terms of => (gamma * dx)"
         )
 
     def consume_user_options(self, options):
-        vars = ['gamma']
+        vars = ['gamma', 'boundedFlow']
         data = dict((var, self._smart_getattr(options, var))
                     for var in vars)
         self.configure(**data)
